@@ -1,0 +1,122 @@
+<LinearLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="match_parent"
+	android:layout_height="wrap_content"
+	android:background="@drawable/bg_modal_back"
+	android:orientation="vertical">
+	<RelativeLayout
+		android:layout_width="match_parent"
+		android:layout_height="40dp">
+
+		<TextView
+			android:layout_width="match_parent"
+			android:layout_height="match_parent"
+			android:gravity="center"
+			android:text="Connect"
+			android:textColor="#FFF"
+			android:textSize="20dp"
+			android:textStyle="bold" />
+
+		<ImageView
+			android:id="@+id/connect"
+			android:layout_width="40dp"
+			android:layout_height="40dp"
+			android:layout_alignParentRight="true"
+			android:padding="5dp"
+			android:src="@drawable/id"
+			app:tint="#fff" />
+
+		<ImageView
+			android:id="@+id/refresh"
+			android:layout_width="40dp"
+			android:layout_height="40dp"
+			android:layout_alignParentLeft="true"
+			android:padding="5dp"
+			android:src="@drawable/refresh"
+			app:tint="#fff" />
+		<ImageView
+			android:visibility="gone"
+			android:id="@+id/connect_back"
+			android:layout_width="40dp"
+			android:layout_height="40dp"
+			android:layout_alignParentLeft="true"
+			android:padding="8dp"
+			android:src="@drawable/back"
+			app:tint="#fff" />
+	</RelativeLayout>
+	<LinearLayout
+		android:id="@+id/linear1"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:padding="8dp"
+		android:background="@drawable/bg_modal_body"
+		android:gravity="center"
+		android:minHeight="200dp"
+		android:orientation="vertical">
+		<LinearLayout
+			android:id="@+id/base_block"
+			android:orientation="vertical"
+			android:gravity="center"
+			android:layout_width="match_parent"
+			android:layout_height="match_parent">
+			<ListView
+				android:visibility="gone"
+				android:id="@+id/listview1"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent"
+				android:padding="8dp"
+				android:choiceMode="none" />
+			<ImageView
+				android:id="@+id/empty"
+				android:visibility="gone"
+				android:src="@drawable/scooter_empty"
+				android:scaleType="centerInside"
+				android:layout_width="100dp"
+				android:layout_height="100dp"
+				app:tint="@color/colorPrimary" />
+			<ProgressBar
+				android:id="@+id/loading"
+				android:layout_width="50dp"
+				android:layout_height="50dp"
+				/>
+		</LinearLayout>
+
+		<LinearLayout
+			android:visibility="gone"
+			android:orientation="horizontal"
+			android:id="@+id/connect_block"
+			android:layout_width="match_parent"
+			android:gravity="center"
+			android:layout_height="100dp">
+			<LinearLayout
+				android:orientation="vertical"
+				android:layout_weight="1"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent"
+			>
+				<EditText
+					android:id="@+id/connect_text"
+					android:layout_width="match_parent"
+					android:layout_height="50dp"
+					android:hint="Address"
+					/>
+				<EditText
+					android:id="@+id/connect_uuid"
+					android:layout_width="match_parent"
+					android:layout_height="50dp"
+					android:hint="UUID"
+					/>
+			</LinearLayout>
+
+			<ImageView
+				android:src="@drawable/bluetooth_connect"
+				android:padding="8dp"
+				android:id="@+id/connect_go"
+				android:layout_width="50dp"
+				android:layout_height="50dp"
+				app:tint="@color/colorPrimary" />
+		</LinearLayout>
+	</LinearLayout>
+</LinearLayout>
