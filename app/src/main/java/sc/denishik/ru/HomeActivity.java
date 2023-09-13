@@ -151,7 +151,7 @@ public class HomeActivity extends AppCompatActivity {
 						HashMap<String, Object> temp = (HashMap<String, Object>) intent.getSerializableExtra("data");
 						if (temp != null) {
 							BaseParams params = new BaseParams(temp);
-							if (params.getSpeed() > 1.0) {
+							if (params.getSpeed() > 5.0) {
 								speed.setText(String.valueOf(params.getSpeed()));
 								save_scale_type.setVisibility(View.VISIBLE);
 								viewPager.setCurrentItem(1);
