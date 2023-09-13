@@ -93,14 +93,13 @@ public class Adapters {
         private LedPage ledPage ;
 
 
-        public ViewsAdapter(FragmentManager fm, Context context) {
+        public ViewsAdapter(FragmentManager fm, Context context, AppCompatActivity activity) {
             super(fm);
 
-            Resources resources = context.getResources();
-            homePage = HomePage.newInstance();
-            remotePage = RemoteView.newInstance();
-            infoPage = InfoView.newInstance();
-            ledPage = LedPage.newInstance();
+            homePage = new HomePage();
+            remotePage = new RemoteView();
+            infoPage = new InfoView(activity);
+            ledPage = new LedPage(activity);
         }
 
         @NonNull
@@ -108,13 +107,13 @@ public class Adapters {
         public Fragment getItem(int position) {
             switch (position) {
                 case 0:
-                    return new HomePage();
+                    return homePage;
                 case 1:
-                    return new RemoteView();
+                    return remotePage;
                 case 2:
-                    return new InfoView();
+                    return infoPage;
                 case 3:
-                    return new LedPage();
+                    return ledPage;
                 default:
                     return null;
 

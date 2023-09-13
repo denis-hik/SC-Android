@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager.widget.ViewPager;
 
@@ -34,25 +35,10 @@ public class InfoView extends Fragment {
     private BaseParams params;
     private TextView data;
     private Button back;
+    private AppCompatActivity activity;
 
-    public InfoView() {
-        // Required empty public constructor
-    }
-
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment InfoView.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static InfoView newInstance() {
-        InfoView fragment = new InfoView();
-        Bundle args = new Bundle();
-        fragment.setArguments(args);
-        return fragment;
+    public InfoView(AppCompatActivity activity) {
+        this.activity = activity;
     }
 
     @Override
@@ -90,7 +76,7 @@ public class InfoView extends Fragment {
         back = view.findViewById(R.id.back);
 
         back.setOnClickListener(v -> {
-            ViewPager viewPager = getActivity().findViewById(R.id.viewpage);;
+            ViewPager viewPager = activity.findViewById(R.id.viewpage);;
             viewPager.setCurrentItem(0);
         });
 
@@ -103,14 +89,14 @@ public class InfoView extends Fragment {
         if (isvisible) {
             try {
 
-                getActivity().registerReceiver(mMessageReceiver, new IntentFilter(SCOOTER_GET_DATA_PARAMS_COMMAND));
+                activity.registerReceiver(mMessageReceiver, new IntentFilter(SCOOTER_GET_DATA_PARAMS_COMMAND));
             } catch (Exception e) {
 
             }
         } else {
             try {
 
-                getActivity().unregisterReceiver(mMessageReceiver);
+                activity.unregisterReceiver(mMessageReceiver);
             } catch (Exception e) {
 
             }

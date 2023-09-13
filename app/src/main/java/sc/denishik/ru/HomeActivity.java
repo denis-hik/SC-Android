@@ -5,6 +5,7 @@ import static sc.denishik.ru.other.Config.SCOOTER_GET_DATA_NAME_COMMAND;
 import static sc.denishik.ru.other.Config.SCOOTER_GET_DATA_PARAMS_COMMAND;
 
 import android.Manifest;
+import android.animation.Animator;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -43,9 +44,11 @@ import com.yandex.mapkit.map.PlacemarkMapObject;
 import com.yandex.mapkit.mapview.MapView;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Random;
 
 import sc.denishik.ru.midwayApi.Scooter;
+import sc.denishik.ru.midwayApi.base.BaseParams;
 import sc.denishik.ru.other.Adapters;
 import sc.denishik.ru.other.CustomViewPager;
 
@@ -58,6 +61,7 @@ public class HomeActivity extends AppCompatActivity {
 	private MapView mapview1;
 	private View linear2;
 	private LinearLayout linear13;
+	private LinearLayout route_block;
 	private TextView textview1;
 	private ImageView image;
 	private CustomViewPager viewPager;
@@ -70,11 +74,16 @@ public class HomeActivity extends AppCompatActivity {
 	private Point gps_pos;
 	private CardView error_block;
 	private TextView speed;
+	private CardView home;
+	private CardView garden;
+	private BottomSheetBehavior behavior;
+	private Animator.AnimatorListener animationHide;
+	private boolean isHide = false;
+	private Adapters.ViewsAdapter adapterView = new Adapters.ViewsAdapter(getSupportFragmentManager(), this, this);
 
 	@Override
 	protected void onCreate(Bundle _savedInstanceState) {
 		super.onCreate(_savedInstanceState);
-		MapKitFactory.setApiKey("d9c967a8-e55c-47ff-8d95-19924290e00b");
 		MapKitFactory.initialize(this);
 		setContentView(R.layout.home);
 		initialize(_savedInstanceState);
@@ -94,12 +103,37 @@ public class HomeActivity extends AppCompatActivity {
 		save_scale_type = findViewById(R.id.save_scale_type);
 		error_block = findViewById(R.id.error_block);
 		speed = findViewById(R.id.speed);
+		route_block = findViewById(R.id.route_block);
+		garden = findViewById(R.id.garden);
+		home = findViewById(R.id.home);
+		route_block = findViewById(R.id.route_block);
+		behavior = BottomSheetBehavior.from(linear2);
 	}
 
 	private void initializeLogic() {
+		animationHide = new Animator.AnimatorListener() {
+			@Override
+			public void onAnimationStart(Animator animation) {
+				route_block.setAlpha(0.0f);
+			}
+
+			@Override
+			public void onAnimationEnd(Animator animation) {
+				route_block.setVisibility(View.GONE);
+			}
+
+			@Override
+			public void onAnimationCancel(Animator animation) {
+
+			}
+
+			@Override
+			public void onAnimationRepeat(Animator animation) {
+
+			}
+		};
 		scooter = new Scooter("", "", "", "");
 		viewPager.setPagingEnabled(false);
-		BottomSheetBehavior behavior = BottomSheetBehavior.from(linear2);
 		mMessageReceiver = new BroadcastReceiver() {
 			@Override
 			public void onReceive(Context context, Intent intent) {
@@ -113,13 +147,36 @@ public class HomeActivity extends AppCompatActivity {
 					case SCOOTER_ERROR_CONNECT:
 						error_block.setVisibility(View.VISIBLE);
 						break;
+					case SCOOTER_GET_DATA_PARAMS_COMMAND:
+						HashMap<String, Object> temp = (HashMap<String, Object>) intent.getSerializableExtra("data");
+						if (temp != null) {
+							BaseParams params = new BaseParams(temp);
+							if (params.getSpeed() > 1.0) {
+								speed.setText(String.valueOf(params.getSpeed()));
+								save_scale_type.setVisibility(View.VISIBLE);
+								viewPager.setCurrentItem(1);
+								route_block.animate().alpha(0.0f).setDuration(1).setListener(animationHide).start();
+								behavior.setPeekHeight((int) getDip(230), true);
+								isHide = false;
+							} else {
+								if (!isHide) {
+									isHide = true;
+									route_block.setVisibility(View.VISIBLE);
+									route_block.setAlpha(1.0f);
+									save_scale_type.setVisibility(View.GONE);
+									behavior.setPeekHeight((int) getDip(110), true);
+								}
+
+							}
+						}
+						break;
 
 					default:
 						break;
 				}
 			}
 		};
-		viewPager.setAdapter(new Adapters.ViewsAdapter(getSupportFragmentManager(), this));
+		viewPager.setAdapter(adapterView);
 		IntentFilter filter = new IntentFilter();
 		filter.addAction(SCOOTER_GET_DATA_NAME_COMMAND);
 		filter.addAction(SCOOTER_ERROR_CONNECT);
@@ -127,6 +184,8 @@ public class HomeActivity extends AppCompatActivity {
 		registerReceiver(mMessageReceiver, filter);
 
 		gps_pos = new Point(59.945933, 30.320045);
+		Point home_pos = new Point(55.730887, 37.459038);
+		Point garden_pos = new Point(55.738636, 37.464624);
 		mapview1.getMap().move(
 				new CameraPosition(gps_pos, 17.0f, 0.0f, 0.0f),
 				new Animation(Animation.Type.SMOOTH, 3),
@@ -144,18 +203,7 @@ public class HomeActivity extends AppCompatActivity {
 		gps_listener = new LocationListener() {
 			@Override
 			public void onLocationUpdated(@NonNull Location location) {
-				Log.d("onLocationChanged", String.valueOf(location.getPosition()));
-				gps_pos = location.getPosition();
-				mapview1.getMap().move(
-						new CameraPosition(gps_pos, 17.0f, 0.0f, 0.0f),
-						new Animation(Animation.Type.SMOOTH, 5),
-						null);
-				mark.setGeometry(gps_pos);
-				if (location.getSpeed() != null && location.getSpeed() > 5) {
-					speed.setText(String.valueOf(location.getSpeed()));
-					save_scale_type.setVisibility(View.VISIBLE);
-				}
-//				behavior.setPeekHeight(70, true);
+				onSpeed(location, mark);
 			}
 
 			@Override
@@ -163,6 +211,33 @@ public class HomeActivity extends AppCompatActivity {
 
 			}
 		};
+		garden.setOnClickListener(v -> {
+
+		});
+		home.setOnClickListener(v -> {
+
+		});
+		behavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+			@Override
+			public void onStateChanged(@NonNull View bottomSheet, int newState) {
+
+			}
+
+			@Override
+			public void onSlide(@NonNull View bottomSheet, float slideOffset) {
+				Log.d(TAG, String.valueOf(slideOffset));
+				if (slideOffset > 0.6) {
+					route_block.setVisibility(View.GONE);
+				} else {
+					route_block.setAlpha(1);
+					route_block.setVisibility(View.VISIBLE);
+				}
+				if (slideOffset > 0.2 && slideOffset < 0.6) {
+					double i = slideOffset - 0.2;
+					route_block.setAlpha((float) i);
+				}
+			}
+		});
 		if (ContextCompat.checkSelfPermission(HomeActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
 			Log.d(TAG, "initializeLogic:>  requestLocationUpdates = true");
 			gps.subscribeForLocationUpdates(0,0, 60, false, FilteringMode.OFF, gps_listener);
@@ -191,6 +266,16 @@ public class HomeActivity extends AppCompatActivity {
 				gps.subscribeForLocationUpdates(0,0, 60, false, FilteringMode.OFF, gps_listener);
 			}
 		}
+	}
+
+	public void onSpeed(Location location, PlacemarkMapObject mark) {
+		Log.d("onLocationChanged", String.valueOf(location.getPosition()));
+		gps_pos = location.getPosition();
+		mapview1.getMap().move(
+				new CameraPosition(gps_pos, 17.0f, 0.0f, 0.0f),
+				new Animation(Animation.Type.SMOOTH, 5),
+				null);
+		mark.setGeometry(gps_pos);
 	}
 	
 	@Override

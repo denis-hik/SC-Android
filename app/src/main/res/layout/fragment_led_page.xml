@@ -36,8 +36,9 @@
                 />
             </androidx.cardview.widget.CardView>
             <androidx.cardview.widget.CardView
-                android:layout_width="match_parent"
+                android:layout_width="100dp"
                 android:layout_height="match_parent"
+                android:layout_weight="1"
                 app:cardCornerRadius="10dp"
                 app:cardElevation="0dp"
                 app:cardBackgroundColor="@color/colorControlHighlight"
@@ -49,6 +50,22 @@
                     android:text="ws://"
                     android:gravity="center"
                 />
+            </androidx.cardview.widget.CardView>
+            <androidx.cardview.widget.CardView
+                android:layout_width="40dp"
+                android:layout_marginLeft="10dp"
+                android:layout_height="match_parent"
+                app:cardCornerRadius="10dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="@color/colorControlHighlight"
+                >
+                <ImageView
+                    android:id="@+id/refresh"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/refresh"
+                    android:padding="5dp"
+                    />
             </androidx.cardview.widget.CardView>
         </LinearLayout>
     </LinearLayout>

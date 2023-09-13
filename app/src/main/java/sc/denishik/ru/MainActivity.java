@@ -21,6 +21,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.yandex.mapkit.MapKitFactory;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
@@ -39,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
 	
 	@Override
 	protected void onCreate(Bundle _savedInstanceState) {
+		MapKitFactory.setApiKey("d9c967a8-e55c-47ff-8d95-19924290e00b");
 		super.onCreate(_savedInstanceState);
 		setContentView(R.layout.main);
 		initialize(_savedInstanceState);

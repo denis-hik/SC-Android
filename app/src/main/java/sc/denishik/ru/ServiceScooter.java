@@ -515,8 +515,10 @@ public class ServiceScooter extends Service implements EventObserver {
                 }
             }
         } else {
-            params.setGearPosition(bArr[4] & 255);
             int registerZero = ByteArrayExtKt.readUInt16BE(bArr, 21);
+            int readUInt16BE = ByteArrayExtKt.readUInt16BE(bArr, 6);
+            int readUInt16BE2 = ByteArrayExtKt.readUInt16BE(bArr, 8);
+            params.setGearPosition(bArr[4] & 255);
             bitString[0] = ValueExtKt.getBit(registerZero, 0);
             bitString[1] = ValueExtKt.getBit(registerZero, 1);
             bitString[2] = ValueExtKt.getBit(registerZero, 2);
@@ -525,19 +527,24 @@ public class ServiceScooter extends Service implements EventObserver {
             bitString[5] = ValueExtKt.getBit(registerZero, 5);
             bitString[6] = ValueExtKt.getBit(registerZero, 6);
             bitString[7] = ValueExtKt.getBit(registerZero, 11);
+
+            params.setSpeed(ValueExtKt.maxDecimal(readUInt16BE2 / 1000.0f, 1));
+            float current = ValueExtKt.maxDecimal(ByteArrayExtKt.readShortBE(bArr, 12) / 64.0f, 1);
+            float voltage = ValueExtKt.maxDecimal(ByteArrayExtKt.readUInt16BE(bArr, 10) / 10.0f, 1);
+            params.setPower(ValueExtKt.maxDecimal(voltage, 1));
             params.setHeadLightSw(ValueExtKt.toBool(bitString[2]));
             params.setAtmosphereLightSw(ValueExtKt.toBool(bitString[3]));
             params.setCruiseControlSw(ValueExtKt.toBool(bitString[4]));
             params.setBootMode(ValueExtKt.toBool(bitString[5]));
             params.setMetricInchSw(ValueExtKt.toBool(bitString[6]));
             params.setLockSw(ValueExtKt.toBool(bitString[7]));
+            LogUtils.d("baseParams> " + params.toString());
             Intent intent = new Intent(SCOOTER_GET_DATA_PARAMS_COMMAND);
             intent.putExtra("data", params.toObject());
             sendBroadcast(intent);
         }
 
 
-        LogUtils.d("baseParams> " + params.toString());
     }
 
     private final void getParamsList() {

@@ -1,5 +1,7 @@
 package sc.denishik.ru.midwayApi.base;
 
+import android.util.Log;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -32,6 +34,8 @@ public final class BaseParams implements Serializable, Cloneable {
     private int test12;
     private int test13;
     private int test9;
+    private float speed;
+    private float power;
     @NotNull
     private String testStr;
 
@@ -63,6 +67,8 @@ public final class BaseParams implements Serializable, Cloneable {
         this.test12 = i12;
         this.test13 = i13;
         this.testStr = testStr;
+        this.speed = 0;
+        this.power = 0;
     }
 
     public final int component1() {
@@ -154,6 +160,9 @@ public final class BaseParams implements Serializable, Cloneable {
 
     public final int component9() {
         return this.limitMode1;
+    }
+    public final float getSpeed() {
+        return this.speed;
     }
 
     @NotNull
@@ -347,6 +356,12 @@ public final class BaseParams implements Serializable, Cloneable {
     public final void setTest9(int i2) {
         this.test9 = i2;
     }
+    public final void setSpeed(float i2) {
+        this.speed = i2;
+    }
+    public void setPower(float i) {
+        this.power = i;
+    }
 
     public final void setTestStr(@NotNull String str) {
         Intrinsics.checkNotNullParameter(str, "<set-?>");
@@ -387,7 +402,7 @@ public final class BaseParams implements Serializable, Cloneable {
         int i12 = this.test12;
         int i13 = this.test13;
         String str3 = this.testStr;
-        return "BaseParams(gearPosition=" + i2 + ", headLightSw=" + z2 + ", atmosphereLightSw=" + z3 + ", cruiseControlSw=" + z4 + ", bootMode=" + z5 + ", metricInchSw=" + z6 + ", lockSw=" + z7 + ", limitCruise=" + i3 + ", limitMode1=" + i4 + ", limitMode2=" + i5 + ", limitMode3=" + i6 + ", nextService=" + f2 + ", lastService=" + i7 + ", serviceMileage=" + i8 + ", displayName=" + str + ", displayVersion=" + str2 + ", test9=" + i9 + ", test10=" + i10 + ", test11=" + i11 + ", test12=" + i12 + ", test13=" + i13 + ", testStr=" + str3 + ")";
+        return "BaseParams(gearPosition=" + i2 + ", headLightSw=" + z2 + ", atmosphereLightSw=" + z3 + ", cruiseControlSw=" + z4 + ", bootMode=" + z5 + ", metricInchSw=" + z6 + ", lockSw=" + z7 + ", limitCruise=" + i3 + ", limitMode1=" + i4 + ", limitMode2=" + i5 + ", limitMode3=" + i6 + ", nextService=" + f2 + ", lastService=" + i7 + ", serviceMileage=" + i8 + ", displayName=" + str + ", displayVersion=" + str2 + ", test9=" + i9 + ", test10=" + i10 + ", test11=" + i11 + ", test12=" + i12 + ", test13=" + i13 + ", testStr=" + str3 + ", speed=" + this.speed + ", power=" + this.power + ")";
     }
     @NotNull
     public HashMap<String, Object> toObject() {
@@ -408,6 +423,8 @@ public final class BaseParams implements Serializable, Cloneable {
         temp.put("serviceMileage", serviceMileage);
         temp.put("displayName", displayName);
         temp.put("displayVersion", displayVersion);
+        temp.put("speed", speed);
+        temp.put("power", power);
         int i9 = this.test9;
         int i10 = this.test10;
         int i11 = this.test11;
@@ -430,23 +447,94 @@ public final class BaseParams implements Serializable, Cloneable {
         this();
         try {
             gearPosition = (int) obj.get("gearPosition");
+        } catch (Exception e) {
+            Log.e("BaseParams", "from hashMap".concat(String.valueOf(e.getMessage())));
+        }
+        try {
             headLightSw = (boolean) obj.get("headLightSw");
+        } catch (Exception e) {
+            Log.e("BaseParams", "from hashMap".concat(String.valueOf(e.getMessage())));
+        }
+        try {
+
             atmosphereLightSw = (boolean) obj.get("atmosphereLightSw");
+        } catch (Exception e) {
+            Log.e("BaseParams", "from hashMap".concat(String.valueOf(e.getMessage())));
+        }
+        try {
             cruiseControlSw = (boolean) obj.get("cruiseControlSw");
+        } catch (Exception e) {
+            Log.e("BaseParams", "from hashMap".concat(String.valueOf(e.getMessage())));
+        }
+        try {
             bootMode = (boolean) obj.get("bootMode");
+        } catch (Exception e) {
+            Log.e("BaseParams", "from hashMap".concat(String.valueOf(e.getMessage())));
+        }
+        try {
             metricInchSw = (boolean) obj.get("metricInchSw");
+        } catch (Exception e) {
+            Log.e("BaseParams", "from hashMap".concat(String.valueOf(e.getMessage())));
+        }
+        try {
             lockSw = (boolean) obj.get("lockSw");
+        } catch (Exception e) {
+            Log.e("BaseParams", "from hashMap".concat(String.valueOf(e.getMessage())));
+        }
+        try {
             limitCruise = (int) obj.get("limitCruise");
+        } catch (Exception e) {
+            Log.e("BaseParams", "from hashMap".concat(String.valueOf(e.getMessage())));
+        }
+        try {
             limitMode1 = (int) obj.get(" limitMode1");
+        } catch (Exception e) {
+            Log.e("BaseParams", "from hashMap".concat(String.valueOf(e.getMessage())));
+        }
+        try {
             limitMode2 = (int) obj.get("limitMode2");
+        } catch (Exception e) {
+            Log.e("BaseParams", "from hashMap".concat(String.valueOf(e.getMessage())));
+        }
+        try {
             limitMode3 = (int) obj.get("limitMode3");
+        } catch (Exception e) {
+            Log.e("BaseParams", "from hashMap".concat(String.valueOf(e.getMessage())));
+        }
+        try {
             nextService = (int) obj.get("nextService");
+        } catch (Exception e) {
+            Log.e("BaseParams", "from hashMap".concat(String.valueOf(e.getMessage())));
+        }
+        try {
             lastService = (int) obj.get("lastService");
+        } catch (Exception e) {
+            Log.e("BaseParams", "from hashMap".concat(String.valueOf(e.getMessage())));
+        }
+        try {
             serviceMileage = (int) obj.get("serviceMileage");
+        } catch (Exception e) {
+            Log.e("BaseParams", "from hashMap".concat(String.valueOf(e.getMessage())));
+        }
+        try {
             displayName = (String) obj.get("displayName");
+        } catch (Exception e) {
+            Log.e("BaseParams", "from hashMap".concat(String.valueOf(e.getMessage())));
+        }
+        try {
             displayVersion = (String) obj.get("displayVersion");
         } catch (Exception e) {
-
+            Log.e("BaseParams", "from hashMap".concat(String.valueOf(e.getMessage())));
+        }
+        try {
+            speed = (float) obj.get("speed");
+        } catch (Exception e) {
+            Log.e("BaseParams", "from hashMap".concat(String.valueOf(e.getMessage())));
+        }
+        try {
+            power = (float) obj.get("power");
+        } catch (Exception e) {
+            Log.e("BaseParams", "from hashMap".concat(String.valueOf(e.getMessage())));
         }
     }
 
