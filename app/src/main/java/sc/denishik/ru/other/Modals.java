@@ -92,6 +92,16 @@ public class Modals {
         };
         activity.registerReceiver(mMessageReceiver, new IntentFilter(SCOOTER_CONNECT_COMMAND));
 
+        connect.setOnLongClickListener(v -> {
+            Intent i = new Intent();
+            i.setAction(Intent.ACTION_VIEW);
+            i.setClass(activity.getApplicationContext(), HomeActivity.class);
+            activity.startActivity(i);
+            activity.finish();
+
+            return false;
+        });
+
         refresh.setOnClickListener(v -> {
             base_block.setVisibility(View.VISIBLE);
             connect_block.setVisibility(View.GONE);
@@ -109,17 +119,17 @@ public class Modals {
                     Log.d("", "onGetScooter: ".concat(String.valueOf(scooters)));
                     activity.runOnUiThread( () -> {
                         if (scooters.size() > 0) {
-                            for (Scooter scooter : scooters) {
-                                if (scooter.getAddress().contains(activity.getSharedPreferences("login", Activity.MODE_PRIVATE).getString("address", "null"))) {
-                                    listView1.setVisibility(View.GONE);
-                                    Intent i = new Intent(activity, ServiceScooter.class);
-                                    i.putExtra("command", SCOOTER_CONNECT_COMMAND);
-                                    i.putExtra("uuid", scooter.getUUID());
-                                    i.putExtra("address", scooter.getAddress());
-                                    i.putExtra("name", scooter.getName());
-                                    activity.startService(i);
-                                }
-                            }
+//                            for (Scooter scooter : scooters) {
+//                                if (scooter.getAddress().contains(activity.getSharedPreferences("login", Activity.MODE_PRIVATE).getString("address", "null"))) {
+//                                    listView1.setVisibility(View.GONE);
+//                                    Intent i = new Intent(activity, ServiceScooter.class);
+//                                    i.putExtra("command", SCOOTER_CONNECT_COMMAND);
+//                                    i.putExtra("uuid", scooter.getUUID());
+//                                    i.putExtra("address", scooter.getAddress());
+//                                    i.putExtra("name", scooter.getName());
+//                                    activity.startService(i);
+//                                }
+//                            }
                             empty.setVisibility(View.GONE);
                             loading.setVisibility(View.GONE);
                             listView1.setVisibility(View.VISIBLE);
@@ -236,17 +246,17 @@ public class Modals {
                 Log.d("", "onGetScooter: ".concat(String.valueOf(scooters)));
                 activity.runOnUiThread( () -> {
                     if (scooters.size() > 0) {
-                        for (Scooter scooter : scooters) {
-                            if (scooter.getAddress().contains(activity.getSharedPreferences("login", Activity.MODE_PRIVATE).getString("address", "null"))) {
-                                listView1.setVisibility(View.GONE);
-                                Intent i = new Intent(activity, ServiceScooter.class);
-                                i.putExtra("command", SCOOTER_CONNECT_COMMAND);
-                                i.putExtra("uuid", scooter.getUUID());
-                                i.putExtra("address", scooter.getAddress());
-                                i.putExtra("name", scooter.getName());
-                                activity.startService(i);
-                            }
-                        }
+//                        for (Scooter scooter : scooters) {
+//                            if (scooter.getAddress().contains(activity.getSharedPreferences("login", Activity.MODE_PRIVATE).getString("address", "null"))) {
+//                                listView1.setVisibility(View.GONE);
+//                                Intent i = new Intent(activity, ServiceScooter.class);
+//                                i.putExtra("command", SCOOTER_CONNECT_COMMAND);
+//                                i.putExtra("uuid", scooter.getUUID());
+//                                i.putExtra("address", scooter.getAddress());
+//                                i.putExtra("name", scooter.getName());
+//                                activity.startService(i);
+//                            }
+//                        }
                         empty.setVisibility(View.GONE);
                         loading.setVisibility(View.GONE);
                         listView1.setVisibility(View.VISIBLE);

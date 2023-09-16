@@ -5,7 +5,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class Config {
     public static String PIN_CODE = "888888";
-    public static String NAME_SCOOTER_BLU = "HW_ZA";
+    public static String NAME_SCOOTER_BLU = "HW";
 
     @Nullable
     private static byte currentHeadMonitor;

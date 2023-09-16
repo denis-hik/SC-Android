@@ -11,6 +11,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.SparseBooleanArray;
@@ -39,12 +43,14 @@ import com.yandex.mapkit.location.LocationListener;
 import com.yandex.mapkit.location.LocationManager;
 import com.yandex.mapkit.location.LocationStatus;
 import com.yandex.mapkit.map.CameraPosition;
+import com.yandex.mapkit.map.Map;
 import com.yandex.mapkit.map.MapObjectCollection;
 import com.yandex.mapkit.map.PlacemarkMapObject;
 import com.yandex.mapkit.mapview.MapView;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Random;
 
 import sc.denishik.ru.midwayApi.Scooter;
@@ -75,7 +81,12 @@ public class HomeActivity extends AppCompatActivity {
 	private CardView error_block;
 	private TextView speed;
 	private CardView home;
+	private float azimut;
+	private SensorEventListener mySensorEventListener;
+	private SensorManager mySensorManager;
+	private List<Sensor> mySensors;
 	private CardView garden;
+	private boolean isMoved = false;
 	private BottomSheetBehavior behavior;
 	private Animator.AnimatorListener animationHide;
 	private boolean isHide = false;
@@ -176,6 +187,27 @@ public class HomeActivity extends AppCompatActivity {
 				}
 			}
 		};
+		mySensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
+		mySensors = mySensorManager.getSensorList(Sensor.TYPE_ORIENTATION);
+		mySensorEventListener = new SensorEventListener() {
+			@Override
+			public void onSensorChanged(SensorEvent event) {
+				if ((int) azimut != (int) event.values[0]) {
+					mapview1.getMap().move(
+							new CameraPosition(gps_pos, 17.0f, event.values[0], 0.0f),
+							new Animation(Animation.Type.SMOOTH, 2),
+							null);
+				}
+				azimut = event.values[0];
+			}
+
+			@Override
+			public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+			}
+		};
+
+
 		viewPager.setAdapter(adapterView);
 		IntentFilter filter = new IntentFilter();
 		filter.addAction(SCOOTER_GET_DATA_NAME_COMMAND);
@@ -249,7 +281,6 @@ public class HomeActivity extends AppCompatActivity {
 					ACCESS_FINE_LOCATION
 			);
 		}
-
 	}
 
 	@Override
@@ -272,10 +303,18 @@ public class HomeActivity extends AppCompatActivity {
 		Log.d("onLocationChanged", String.valueOf(location.getPosition()));
 		gps_pos = location.getPosition();
 		mapview1.getMap().move(
-				new CameraPosition(gps_pos, 17.0f, 0.0f, 0.0f),
+				new CameraPosition(gps_pos, 17.0f, azimut, 0.0f),
 				new Animation(Animation.Type.SMOOTH, 5),
-				null);
+				new Map.CameraCallback() {
+					@Override
+					public void onMoveFinished(boolean b) {
+						if(mySensors.size() > 0 && b) {
+							mySensorManager.registerListener(mySensorEventListener, mySensors.get(0), SensorManager.SENSOR_DELAY_NORMAL);
+						}
+					}
+				});isMoved = true;
 		mark.setGeometry(gps_pos);
+
 	}
 	
 	@Override
@@ -300,6 +339,23 @@ public class HomeActivity extends AppCompatActivity {
 	@Override
 	public void onResume() {
 		super.onResume();
+		try {
+			unregisterReceiver(mMessageReceiver);
+		} catch (Exception e) {
+
+		}
+		try {
+			mySensorManager.unregisterListener(mySensorEventListener);
+		} catch (Exception e) {
+
+		}
+		IntentFilter filter = new IntentFilter();
+		filter.addAction(SCOOTER_GET_DATA_NAME_COMMAND);
+		filter.addAction(SCOOTER_ERROR_CONNECT);
+		filter.addAction(SCOOTER_GET_DATA_PARAMS_COMMAND);
+		registerReceiver(mMessageReceiver, filter);
+		List<Sensor> mySensors = mySensorManager.getSensorList(Sensor.TYPE_ORIENTATION);
+//		mySensorManager.registerListener(mySensorEventListener, mySensors.get(0), SensorManager.SENSOR_DELAY_NORMAL);
 	}
 	
 	@Override
@@ -307,6 +363,7 @@ public class HomeActivity extends AppCompatActivity {
 		mapview1.onStop();
 		unregisterReceiver(mMessageReceiver);
 		gps.unsubscribe(gps_listener);
+		mySensorManager.unregisterListener(mySensorEventListener);
 		MapKitFactory.getInstance().onStop();
 		super.onStop();
 	}

@@ -33,12 +33,12 @@ public class MainActivity extends AppCompatActivity {
 	private static final int BLUETOOTH_PRIVILEGED = 3;
 	private static final int ACCESS_FINE_LOCATION = 4;
 	private ArrayList<HashMap<String, Object>> listScooters = new ArrayList<>();
-	
+
 	private LinearLayout linear1;
 	private LinearLayout blu_err;
 	private ImageView imageview1;
 	private ImageView imageview2;
-	
+
 	@Override
 	protected void onCreate(Bundle _savedInstanceState) {
 		MapKitFactory.setApiKey("d9c967a8-e55c-47ff-8d95-19924290e00b");
@@ -56,18 +56,32 @@ public class MainActivity extends AppCompatActivity {
 				|| ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
 				!= PackageManager.PERMISSION_GRANTED
 				|| ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+				!= PackageManager.PERMISSION_GRANTED
+				|| ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
 				!= PackageManager.PERMISSION_GRANTED) {
 			// Request Bluetooth permissions
+			String[] s = new String[]{
+					Manifest.permission.BLUETOOTH,
+					Manifest.permission.BLUETOOTH_CONNECT,
+					Manifest.permission.BLUETOOTH_ADMIN,
+					Manifest.permission.BLUETOOTH_PRIVILEGED,
+					Manifest.permission.ACCESS_COARSE_LOCATION,
+					Manifest.permission.ACCESS_FINE_LOCATION
+			};
+			if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+				s = new String[]{
+						Manifest.permission.BLUETOOTH_CONNECT,
+						Manifest.permission.BLUETOOTH_ADMIN,
+						Manifest.permission.BLUETOOTH_SCAN,
+						Manifest.permission.BLUETOOTH_ADVERTISE,
+						Manifest.permission.BLUETOOTH_PRIVILEGED,
+						Manifest.permission.ACCESS_COARSE_LOCATION,
+						Manifest.permission.ACCESS_FINE_LOCATION
+				};
+			}
 			ActivityCompat.requestPermissions(
 					this,
-					new String[]{
-							Manifest.permission.BLUETOOTH,
-							Manifest.permission.BLUETOOTH_ADMIN,
-							Manifest.permission.BLUETOOTH_SCAN,
-							Manifest.permission.BLUETOOTH_PRIVILEGED,
-							Manifest.permission.ACCESS_COARSE_LOCATION,
-							Manifest.permission.ACCESS_FINE_LOCATION
-					},
+					s,
 					REQUEST_BLUETOOTH_PERMISSION
 			);
 			showMessage("enable permission blu");
@@ -97,6 +111,7 @@ public class MainActivity extends AppCompatActivity {
 						new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
 						ACCESS_FINE_LOCATION
 				);
+				return;
 			}
 		}
 		if (requestCode == REQUEST_BLUETOOTH_PERMISSION) {
@@ -131,7 +146,7 @@ public class MainActivity extends AppCompatActivity {
 				blu_err.setVisibility(View.VISIBLE);
 			}
 		} else if (requestCode == BLUETOOTH_PRIVILEGED) {
-			if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+			if (grantResults.length > 0 && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
 
 				Log.d("", "BLUETOOTH_PRIVILEGED: blu yes");
 			} else {
@@ -140,14 +155,14 @@ public class MainActivity extends AppCompatActivity {
 			}
 		}
 	}
-	
+
 	private void initialize(Bundle _savedInstanceState) {
 		linear1 = findViewById(R.id.linear1);
 		blu_err = findViewById(R.id.blu_err);
 		imageview1 = findViewById(R.id.imageview1);
 		imageview2 = findViewById(R.id.imageview2);
 	}
-	
+
 	private void initializeLogic() {
 		if (isServiceRunning(ServiceScooter.class, getApplicationContext())) {
 
@@ -160,58 +175,58 @@ public class MainActivity extends AppCompatActivity {
 			_showConnect();
 		}
 	}
-	
+
 	public void _showConnect() {
 		showStartModal(MainActivity.this, blu_err);
 	}
-	
-	
+
+
 	@Deprecated
 	public void showMessage(String _s) {
 		Toast.makeText(getApplicationContext(), _s, Toast.LENGTH_SHORT).show();
 	}
-	
+
 	@Deprecated
 	public int getLocationX(View _v) {
 		int _location[] = new int[2];
 		_v.getLocationInWindow(_location);
 		return _location[0];
 	}
-	
+
 	@Deprecated
 	public int getLocationY(View _v) {
 		int _location[] = new int[2];
 		_v.getLocationInWindow(_location);
 		return _location[1];
 	}
-	
+
 	@Deprecated
 	public int getRandom(int _min, int _max) {
 		Random random = new Random();
 		return random.nextInt(_max - _min + 1) + _min;
 	}
-	
+
 	@Deprecated
 	public ArrayList<Double> getCheckedItemPositionsToArray(ListView _list) {
 		ArrayList<Double> _result = new ArrayList<Double>();
 		SparseBooleanArray _arr = _list.getCheckedItemPositions();
 		for (int _iIdx = 0; _iIdx < _arr.size(); _iIdx++) {
 			if (_arr.valueAt(_iIdx))
-			_result.add((double)_arr.keyAt(_iIdx));
+				_result.add((double)_arr.keyAt(_iIdx));
 		}
 		return _result;
 	}
-	
+
 	@Deprecated
 	public float getDip(int _input) {
 		return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, _input, getResources().getDisplayMetrics());
 	}
-	
+
 	@Deprecated
 	public int getDisplayWidthPixels() {
 		return getResources().getDisplayMetrics().widthPixels;
 	}
-	
+
 	@Deprecated
 	public int getDisplayHeightPixels() {
 		return getResources().getDisplayMetrics().heightPixels;

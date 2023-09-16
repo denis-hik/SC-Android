@@ -104,6 +104,33 @@
                 android:text="max 40"
             />
         </LinearLayout>
+        <LinearLayout
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            android:layout_width="match_parent"
+            android:layout_height="50dp">
+            <Button
+                android:id="@+id/gear0"
+                android:layout_width="100dp"
+                android:layout_weight="1"
+                android:layout_height="match_parent"
+                android:text="Mode 1"
+            />
+            <Button
+                android:id="@+id/gear1"
+                android:layout_weight="1"
+                android:layout_width="100dp"
+                android:layout_height="match_parent"
+                android:text="Mode 2"
+            />
+            <Button
+                android:id="@+id/gear2"
+                android:layout_weight="1"
+                android:layout_width="100dp"
+                android:layout_height="match_parent"
+                android:text="Mode 3"
+            />
+        </LinearLayout>
     </LinearLayout>
 
 

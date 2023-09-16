@@ -4,6 +4,7 @@ import static sc.denishik.ru.midwayApi.ScootersApi.connectScooter;
 import static sc.denishik.ru.midwayApi.base.KeysBaseParam.LIGHT_KEY;
 import static sc.denishik.ru.midwayApi.base.KeysBaseParam.LOCK_KEY;
 import static sc.denishik.ru.midwayApi.base.KeysBaseParam.MAX_KEY;
+import static sc.denishik.ru.midwayApi.base.KeysBaseParam.MODE_KEY;
 import static sc.denishik.ru.midwayApi.help.other.joinToString$default;
 import static sc.denishik.ru.other.Config.SCOOTER_CONNECT_COMMAND;
 import static sc.denishik.ru.other.Config.SCOOTER_ERROR_CONNECT;
@@ -405,6 +406,9 @@ public class ServiceScooter extends Service implements EventObserver {
                 break;
             case MAX_KEY:
                 params.setLimitMode3((int) value);
+                break;
+            case MODE_KEY:
+                params.setGearPosition((int) value);
                 break;
         }
         sendParamsData();

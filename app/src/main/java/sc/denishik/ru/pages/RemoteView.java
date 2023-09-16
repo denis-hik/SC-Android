@@ -3,6 +3,7 @@ package sc.denishik.ru.pages;
 import static sc.denishik.ru.midwayApi.base.KeysBaseParam.LIGHT_KEY;
 import static sc.denishik.ru.midwayApi.base.KeysBaseParam.LOCK_KEY;
 import static sc.denishik.ru.midwayApi.base.KeysBaseParam.MAX_KEY;
+import static sc.denishik.ru.midwayApi.base.KeysBaseParam.MODE_KEY;
 import static sc.denishik.ru.other.Config.SCOOTER_CONNECT_COMMAND;
 import static sc.denishik.ru.other.Config.SCOOTER_GET_DATA_PARAMS_COMMAND;
 import static sc.denishik.ru.other.Config.SCOOTER_SEND_DATA_PARAMS_COMMAND;
@@ -53,6 +54,9 @@ public class RemoteView extends Fragment {
     private Button back;
     private Button max20;
     private Button max30;
+    private Button gear0;
+    private Button gear1;
+    private Button gear2;
     private TextView max_text;
     private BroadcastReceiver mMessageReceiver;
 
@@ -104,6 +108,9 @@ public class RemoteView extends Fragment {
         back = _view.findViewById(R.id.back);
         max20 = _view.findViewById(R.id.max20);
         max30 = _view.findViewById(R.id.max30);
+        gear0 = _view.findViewById(R.id.gear0);
+        gear1 = _view.findViewById(R.id.gear1);
+        gear2 = _view.findViewById(R.id.gear2);
 
         parking.setOnClickListener(v -> {
             parking_image.setImageDrawable(getActivity().getDrawable(params.getLockSw() ? R.drawable.parking : R.drawable.parking_off));
@@ -122,6 +129,15 @@ public class RemoteView extends Fragment {
         });
         max30.setOnClickListener(v -> {
             handleMaxSpeed((int) 40);
+        });
+        gear0.setOnClickListener(v -> {
+            handleModeGear(0);
+        });
+        gear1.setOnClickListener(v -> {
+            handleModeGear(1);
+        });
+        gear2.setOnClickListener(v -> {
+            handleModeGear(2);
         });
 
         return _view;
@@ -150,6 +166,14 @@ public class RemoteView extends Fragment {
         // You can also include some extra data.
         i.putExtra("key", MAX_KEY);
         i.putExtra("value",  speed);
+        getActivity().startService(i);
+    }
+    private void handleModeGear(int mode) {
+        Intent i = new Intent(getContext(), ServiceScooter.class);
+        i.putExtra("command", SCOOTER_SEND_DATA_PARAMS_COMMAND);
+        // You can also include some extra data.
+        i.putExtra("key", MODE_KEY);
+        i.putExtra("value",  mode);
         getActivity().startService(i);
     }
 
