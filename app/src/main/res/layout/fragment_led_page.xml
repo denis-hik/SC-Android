@@ -15,8 +15,6 @@
             android:layout_width="match_parent"
             android:layout_height="50dp"
             android:paddingTop="0dp"
-            android:paddingRight="10dp"
-            android:paddingLeft="10dp"
             android:paddingBottom="10dp"
         >
             <androidx.cardview.widget.CardView
@@ -68,6 +66,13 @@
                     />
             </androidx.cardview.widget.CardView>
         </LinearLayout>
+        <ListView
+            android:dividerHeight="5dp"
+            android:divider="#fff"
+            android:id="@+id/list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+        />
     </LinearLayout>
 
 </FrameLayout>

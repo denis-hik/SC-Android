@@ -17,13 +17,17 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.TextView;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import sc.denishik.ru.R;
 import sc.denishik.ru.ledApi.Client;
+import sc.denishik.ru.ledApi.LedInfo;
 import sc.denishik.ru.midwayApi.base.BaseParams;
+import sc.denishik.ru.other.Adapters;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -40,8 +44,11 @@ public class LedPage extends Fragment {
     private boolean isConnect = false;
     private boolean isSend = false;
     private AppCompatActivity activity;
+    private ArrayList<LedInfo> ledsList;
+    private ListView list;
     private BroadcastReceiver mMessageReceiver;
     private Client.CallBack callbackWS;
+    private Adapters.ListviewLedAdapter adapter;
 
     public LedPage(AppCompatActivity activity) {
         this.activity = activity;
@@ -65,11 +72,14 @@ public class LedPage extends Fragment {
                 }
             }
         };
+        ledsList = new ArrayList<>();
+        adapter = new Adapters.ListviewLedAdapter(ledsList, activity);
         callbackWS = new Client.CallBack() {
             @Override
             public void onGetText(String s) {
                 activity.runOnUiThread(() -> {
-
+                    ledsList.add(new LedInfo("get string ws>".concat(String.valueOf(s)), true));
+                    adapter.notifyDataSetChanged();
                 });
             }
 
@@ -77,7 +87,8 @@ public class LedPage extends Fragment {
             public void onError(String err) {
                 isConnect = false;
                 try {
-
+                    ledsList.add(new LedInfo(String.valueOf(err), false));
+                    adapter.notifyDataSetChanged();
                     activity.unregisterReceiver(mMessageReceiver);
                 } catch (Exception ignored) {
 
@@ -87,6 +98,8 @@ public class LedPage extends Fragment {
             @Override
             public void onDiscovered() {
                 activity.runOnUiThread(() -> {
+                    ledsList.add(new LedInfo("Discovering...", false));
+                    adapter.notifyDataSetChanged();
                     ws_url.setText(client.getUrl());
                     client.connectServer();
                 });
@@ -94,6 +107,8 @@ public class LedPage extends Fragment {
             @Override
             public void onStop() {
                 isConnect = false;
+                ledsList.add(new LedInfo("Stop ws", false));
+                adapter.notifyDataSetChanged();
                 try {
 
                     activity.unregisterReceiver(mMessageReceiver);
@@ -104,6 +119,8 @@ public class LedPage extends Fragment {
             @Override
             public void onOpen() {
                 activity.runOnUiThread(() -> {
+                    ledsList.add(new LedInfo("Open ws", true));
+                    adapter.notifyDataSetChanged();
                     if (!isSend) {
                         activity.registerReceiver(mMessageReceiver, new IntentFilter(SCOOTER_GET_DATA_PARAMS_COMMAND));
                         isSend = true;
@@ -113,6 +130,8 @@ public class LedPage extends Fragment {
                 });
             }
         };
+        ledsList.add(new LedInfo("connecting ws...", false));
+        adapter.notifyDataSetChanged();
         client = new Client(activity, callbackWS);
     }
 
@@ -125,10 +144,13 @@ public class LedPage extends Fragment {
         ws_url = view.findViewById(R.id.ws_url);
         back = view.findViewById(R.id.back);
         refresh = view.findViewById(R.id.refresh);
+        list = view.findViewById(R.id.list);
+        list.setAdapter(adapter);
 
         back.setOnClickListener(v -> {
             viewPager.setCurrentItem(0);
         });
+
         refresh.setOnClickListener(v -> {
             try {
                 client.stop();
@@ -138,6 +160,8 @@ public class LedPage extends Fragment {
             }
             isConnect = false;
             isSend = false;
+            ledsList.add(new LedInfo("Refreshing", false));
+            adapter.notifyDataSetChanged();
             client = new Client(activity, callbackWS);
         });
 

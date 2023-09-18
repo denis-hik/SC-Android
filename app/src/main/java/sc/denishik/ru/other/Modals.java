@@ -61,8 +61,9 @@ public class Modals {
         linear1.setBackground(wd);
 
         location.setChecked(true);
-        location.setClickable(false);
         info.setVisibility(View.VISIBLE);
+
+        activity.getSharedPreferences("file", Context.MODE_PRIVATE).edit().putString("isLoc",  "1").apply();
 
         go.setOnClickListener(v -> {
             activity.getSharedPreferences("file", Context.MODE_PRIVATE).edit().putString("isOpened", "1").apply();
@@ -70,8 +71,7 @@ public class Modals {
         });
         back.setOnClickListener(v -> {
             activity.finish();
-        });
-
+        });;
         location.setOnCheckedChangeListener((buttonView, isChecked) -> {
             activity.getSharedPreferences("file", Context.MODE_PRIVATE).edit().putString("isLoc", isChecked ? "1" : "0").apply();
         });

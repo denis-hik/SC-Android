@@ -2,16 +2,19 @@ package sc.denishik.ru.other;
 
 import android.content.Context;
 import android.content.res.Resources;
+import android.graphics.Color;
 import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentPagerAdapter;
@@ -22,6 +25,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import sc.denishik.ru.R;
+import sc.denishik.ru.ledApi.LedInfo;
 import sc.denishik.ru.midwayApi.Scooter;
 import sc.denishik.ru.pages.HomePage;
 import sc.denishik.ru.pages.InfoView;
@@ -80,6 +84,56 @@ public class Adapters {
 
             name.setText(String.valueOf(_data.get(_position).getName()));
             des.setText(_data.get(_position).getUUID());
+
+            return _view;
+        }
+    }
+    static public class ListviewLedAdapter extends BaseAdapter {
+
+        ArrayList<LedInfo> _data;
+        AppCompatActivity _activity;
+
+        public ListviewLedAdapter(ArrayList<LedInfo> _arr, AppCompatActivity activity) {
+            _data = _arr;
+            _activity = activity;
+        }
+
+        @Override
+        public int getCount() {
+            return _data.size();
+        }
+
+        @Override
+        public LedInfo getItem(int _index) {
+            return _data.get(_index);
+        }
+
+        @Override
+        public long getItemId(int _index) {
+            return _index;
+        }
+
+        @Override
+        public View getView(final int _position, View _v, ViewGroup _container) {
+            LayoutInflater _inflater = _activity.getLayoutInflater();
+            View _view = _v;
+            if (_view == null) {
+                _view = _inflater.inflate(R.layout.led_item, null);
+            }
+
+            final ImageView image = _view.findViewById(R.id.image);
+            final ImageView image_off = _view.findViewById(R.id.image_off);
+            final TextView label = _view.findViewById(R.id.label);
+            final TextView message = _view.findViewById(R.id.message);
+
+            label.setText(_data.get(_position).getDate());
+            message.setText(_data.get(_position).getMessage());
+            if (_data.get(_position).getIsConnected()) {
+                image.setVisibility(View.VISIBLE);
+            }
+            if (!_data.get(_position).getIsConnected()) {
+                image_off.setVisibility(View.VISIBLE);
+            }
 
             return _view;
         }
