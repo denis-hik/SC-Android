@@ -10,6 +10,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.util.Log;
@@ -37,6 +38,35 @@ import sc.denishik.ru.midwayApi.Scooter;
 import sc.denishik.ru.midwayApi.ScootersApi;
 
 public class Modals {
+    public interface showPermissionCallback {
+        void onRequest();
+    }
+    public static void showPermissionModal(AppCompatActivity activity, showPermissionCallback callback) {
+        if (activity.getSharedPreferences("file", Context.MODE_PRIVATE).contains("isOpened")) {
+            callback.onRequest();
+            return;
+        }
+        final com.google.android.material.bottomsheet.BottomSheetDialog dialog = new com.google.android.material.bottomsheet.BottomSheetDialog(activity);
+        View lay = activity.getLayoutInflater().inflate(R.layout.permisson_view, null); dialog.setContentView(lay);
+
+        final LinearLayout linear1 = (LinearLayout)lay.findViewById(R.id.linear1);
+        final LinearLayout go = lay.findViewById(R.id.go);
+
+        dialog.getWindow().findViewById(R.id.design_bottom_sheet).setBackgroundResource(android.R.color.transparent);
+        dialog.show();
+        dialog.setCancelable(false);
+        android.graphics.drawable.GradientDrawable wd = new android.graphics.drawable.GradientDrawable();
+        wd.setColor(Color.WHITE);
+        wd.setCornerRadius((int) 10f);
+        linear1.setBackground(wd);
+
+        go.setOnClickListener(v -> {
+            activity.getSharedPreferences("file", Context.MODE_PRIVATE).edit().putString("isOpened", "1").apply();
+            callback.onRequest();
+        });
+
+    }
+
     public static void showStartModal(AppCompatActivity activity, LinearLayout blu_err) {
         final LinearLayout[] loading_item = new LinearLayout[1];
         final LinearLayout[] loaded_item = new LinearLayout[1];
