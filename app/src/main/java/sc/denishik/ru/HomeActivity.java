@@ -218,16 +218,19 @@ public class HomeActivity extends AppCompatActivity {
 		gps_pos = new Point(59.945933, 30.320045);
 		Point home_pos = new Point(55.730887, 37.459038);
 		Point garden_pos = new Point(55.738636, 37.464624);
-		mapview1.getMap().move(
-				new CameraPosition(gps_pos, 17.0f, 0.0f, 0.0f),
-				new Animation(Animation.Type.SMOOTH, 3),
-				b -> {
-					mapview1.setVisibility(View.VISIBLE);
-					image.setVisibility(View.GONE);
-				});
-		mapview1.getMap().setFastTapEnabled(false);
-		mapview1.setClickable(false);
-		mapview1.setNoninteractive(true);
+		if (getSharedPreferences("file", MODE_PRIVATE).getString("isLoc", "0").equals("1")) {
+			mapview1.getMap().move(
+					new CameraPosition(gps_pos, 17.0f, 0.0f, 0.0f),
+					new Animation(Animation.Type.SMOOTH, 3),
+					b -> {
+						mapview1.setVisibility(View.VISIBLE);
+						image.setVisibility(View.GONE);
+					});
+			mapview1.getMap().setFastTapEnabled(false);
+			mapview1.setClickable(false);
+			mapview1.setNoninteractive(true);
+		}
+
 		MapObjectCollection mapObjects = mapview1.getMap().getMapObjects().addCollection();
 		PlacemarkMapObject mark = mapObjects.addPlacemark(gps_pos);
 
@@ -270,16 +273,18 @@ public class HomeActivity extends AppCompatActivity {
 				}
 			}
 		});
-		if (ContextCompat.checkSelfPermission(HomeActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-			Log.d(TAG, "initializeLogic:>  requestLocationUpdates = true");
-			gps.subscribeForLocationUpdates(0,0, 60, false, FilteringMode.OFF, gps_listener);
-		} else {
-			Log.e(TAG, "initializeLogic:>  requestLocationUpdates = false");
-			ActivityCompat.requestPermissions(
-					this,
-					new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-					ACCESS_FINE_LOCATION
-			);
+		if (getSharedPreferences("file", MODE_PRIVATE).getString("isLoc", "0").equals("1")) {
+			if (ContextCompat.checkSelfPermission(HomeActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+				Log.d(TAG, "initializeLogic:>  requestLocationUpdates = true");
+				gps.subscribeForLocationUpdates(0,0, 60, false, FilteringMode.OFF, gps_listener);
+			} else {
+				Log.e(TAG, "initializeLogic:>  requestLocationUpdates = false");
+				ActivityCompat.requestPermissions(
+						this,
+						new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+						ACCESS_FINE_LOCATION
+				);
+			}
 		}
 	}
 

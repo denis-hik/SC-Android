@@ -1,24 +1,21 @@
 package sc.denishik.ru.other;
 
-import static sc.denishik.ru.midwayApi.ScootersApi.connectScooter;
 import static sc.denishik.ru.midwayApi.ScootersApi.getScooters;
 import static sc.denishik.ru.other.Config.SCOOTER_CONNECT_COMMAND;
+import static sc.denishik.ru.other.Config.SCOOTER_STATUS_CONNECTED;
+import static sc.denishik.ru.other.Config.SCOOTER_STATUS_ERROR;
 
-import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Color;
-import android.os.Bundle;
-import android.os.Parcelable;
 import android.util.Log;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.RotateAnimation;
-import android.widget.AdapterView;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -26,8 +23,8 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Objects;
 
@@ -39,11 +36,11 @@ import sc.denishik.ru.midwayApi.ScootersApi;
 
 public class Modals {
     public interface showPermissionCallback {
-        void onRequest();
+        void onRequest(com.google.android.material.bottomsheet.BottomSheetDialog dialog);
     }
     public static void showPermissionModal(AppCompatActivity activity, showPermissionCallback callback) {
         if (activity.getSharedPreferences("file", Context.MODE_PRIVATE).contains("isOpened")) {
-            callback.onRequest();
+            callback.onRequest(null);
             return;
         }
         final com.google.android.material.bottomsheet.BottomSheetDialog dialog = new com.google.android.material.bottomsheet.BottomSheetDialog(activity);
@@ -51,6 +48,9 @@ public class Modals {
 
         final LinearLayout linear1 = (LinearLayout)lay.findViewById(R.id.linear1);
         final LinearLayout go = lay.findViewById(R.id.go);
+        final LinearLayout back = lay.findViewById(R.id.back);
+        final CheckBox location = lay.findViewById(R.id.location);
+        final CardView info = lay.findViewById(R.id.info);
 
         dialog.getWindow().findViewById(R.id.design_bottom_sheet).setBackgroundResource(android.R.color.transparent);
         dialog.show();
@@ -60,9 +60,20 @@ public class Modals {
         wd.setCornerRadius((int) 10f);
         linear1.setBackground(wd);
 
+        location.setChecked(true);
+        location.setClickable(false);
+        info.setVisibility(View.VISIBLE);
+
         go.setOnClickListener(v -> {
             activity.getSharedPreferences("file", Context.MODE_PRIVATE).edit().putString("isOpened", "1").apply();
-            callback.onRequest();
+            callback.onRequest(dialog);
+        });
+        back.setOnClickListener(v -> {
+            activity.finish();
+        });
+
+        location.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            activity.getSharedPreferences("file", Context.MODE_PRIVATE).edit().putString("isLoc", isChecked ? "1" : "0").apply();
         });
 
     }
@@ -94,8 +105,8 @@ public class Modals {
             @Override
             public void onReceive(Context context, Intent intent) {
                 Log.d("onRec", String.valueOf(intent.getAction()));
-                boolean b = intent.getBooleanExtra("Status", false);
-                if (b) {
+                String s = intent.getStringExtra("Status");
+                if (Objects.equals(s, SCOOTER_STATUS_CONNECTED)) {
                     if (!isShow[0]) {
                         listView1.setVisibility(View.GONE);
                         isShow[0] = true;
@@ -106,7 +117,7 @@ public class Modals {
                         activity.startActivity(i);
                         activity.finish();
                     }
-                } else {
+                } else if (Objects.equals(s, SCOOTER_STATUS_ERROR)) {
                     loading_item[0].setVisibility(View.GONE);
                     loaded_item[0].setVisibility(View.VISIBLE);
                     connect.setVisibility(View.VISIBLE);
@@ -115,6 +126,15 @@ public class Modals {
                     listView1.setVisibility(View.GONE);
                     refresh.setVisibility(View.VISIBLE);
                     base_block.setVisibility(View.VISIBLE);
+                    connect_block.setVisibility(View.GONE);
+                    connect_back.setVisibility(View.GONE);
+                } else {
+                    connect.setVisibility(View.GONE);
+                    refresh.setVisibility(View.GONE);
+                    empty.setVisibility(View.GONE);
+                    base_block.setVisibility(View.VISIBLE);
+                    loading.setVisibility(View.VISIBLE);
+                    listView1.setVisibility(View.GONE);
                     connect_block.setVisibility(View.GONE);
                     connect_back.setVisibility(View.GONE);
                 }

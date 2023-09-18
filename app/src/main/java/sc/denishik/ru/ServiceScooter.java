@@ -11,6 +11,9 @@ import static sc.denishik.ru.other.Config.SCOOTER_ERROR_CONNECT;
 import static sc.denishik.ru.other.Config.SCOOTER_GET_DATA_NAME_COMMAND;
 import static sc.denishik.ru.other.Config.SCOOTER_GET_DATA_PARAMS_COMMAND;
 import static sc.denishik.ru.other.Config.SCOOTER_SEND_DATA_PARAMS_COMMAND;
+import static sc.denishik.ru.other.Config.SCOOTER_STATUS_CONNECTED;
+import static sc.denishik.ru.other.Config.SCOOTER_STATUS_ERROR;
+import static sc.denishik.ru.other.Config.SCOOTER_STATUS_LOADING;
 
 import android.app.Activity;
 import android.app.Service;
@@ -225,6 +228,11 @@ public class ServiceScooter extends Service implements EventObserver {
             onSendNotif();
             return;
         }
+        if (device.isConnected()) {
+            Intent intent = new Intent(SCOOTER_CONNECT_COMMAND);
+            intent.putExtra("Status", SCOOTER_STATUS_LOADING);
+            sendBroadcast(intent);
+        }
     }
 
     @Override
@@ -234,7 +242,7 @@ public class ServiceScooter extends Service implements EventObserver {
             Intent intent = new Intent(SCOOTER_CONNECT_COMMAND);
             // You can also include some extra data.
             isSendNotif = false;
-            intent.putExtra("Status", false);
+            intent.putExtra("Status", SCOOTER_STATUS_ERROR);
             sendBroadcast(intent);
         }
     }
@@ -245,7 +253,7 @@ public class ServiceScooter extends Service implements EventObserver {
         if (Objects.equals(device_name, device.getName())) {
             Intent intent = new Intent(SCOOTER_CONNECT_COMMAND);
             isSendNotif = false;
-            intent.putExtra("Status", false);
+            intent.putExtra("Status", SCOOTER_STATUS_ERROR);
             sendBroadcast(intent);
         }
     }
@@ -257,7 +265,7 @@ public class ServiceScooter extends Service implements EventObserver {
             Intent intent = new Intent(SCOOTER_CONNECT_COMMAND);
             // You can also include some extra data.
             isSendNotif = false;
-            intent.putExtra("Status", false);
+            intent.putExtra("Status", SCOOTER_STATUS_ERROR);
             sendBroadcast(intent);
             Intent intent2 = new Intent(SCOOTER_ERROR_CONNECT);
             intent2.putExtra("Status", false);
@@ -302,7 +310,7 @@ public class ServiceScooter extends Service implements EventObserver {
             byte b2 = value[1];
             Log.d(TAG, "b=".concat(String.valueOf(b).concat(" b2=" + String.valueOf(b2))));
             Intent intent = new Intent(SCOOTER_CONNECT_COMMAND);
-            intent.putExtra("Status", true);
+            intent.putExtra("Status", SCOOTER_STATUS_CONNECTED);
             sendBroadcast(intent);
             dataBuffer.append(value);
 //            prepareDataRX(value);

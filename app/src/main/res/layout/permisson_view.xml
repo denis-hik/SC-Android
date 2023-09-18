@@ -25,33 +25,125 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="* Bluetooth"
+        android:textColor="#000"
     />
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="* Location"
+        android:textColor="#000"
     />
-    <androidx.cardview.widget.CardView
+    <CheckBox
+        android:id="@+id/location"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:text="Share my location"
+    />
+    <androidx.cardview.widget.CardView
+        android:id="@+id/info"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
         app:cardCornerRadius="10dp"
+        android:visibility="gone"
         android:layout_marginTop="10dp"
+        app:cardBackgroundColor="@color/colorPrimary"
         app:cardElevation="0dp"
-    >
+        >
         <LinearLayout
-            android:id="@+id/go"
+            android:layout_gravity="center"
             android:layout_width="match_parent"
-            android:background="@color/colorPrimary"
-            android:layout_height="wrap_content">
-            <TextView
+            android:padding="2dp"
+            android:layout_height="match_parent">
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:text="Go"
-                android:textColor="#fff"
-                android:padding="10dp"
-                android:gravity="center"
-                />
+                app:cardElevation="0dp"
+                app:cardCornerRadius="8dp"
+                >
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="horizontal"
+                >
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="match_parent"
+                        android:src="@drawable/bluetooth_connect"
+                        app:tint="?colorControlNormal" />
+                    <TextView
+                        android:layout_marginLeft="10dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:text="Permission is required gps for to work Bluetooth"
+                    />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+    >
+        <androidx.cardview.widget.CardView
+            android:layout_weight="1"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            app:cardCornerRadius="10dp"
+            android:layout_marginTop="10dp"
+            app:cardBackgroundColor="@color/colorPrimary"
+            app:cardElevation="0dp"
+            >
+            <LinearLayout
+                android:id="@+id/back"
+                android:layout_gravity="center"
+                android:layout_width="match_parent"
+                android:padding="4dp"
+                android:layout_height="wrap_content">
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    app:cardElevation="0dp"
+                    app:cardCornerRadius="5dp"
+                    >
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:text="Back"
+                        android:background="#fff"
+                        android:textColor="@color/colorPrimary"
+                        android:padding="5dp"
+                        android:gravity="center"
+                        />
+                </androidx.cardview.widget.CardView>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+        <androidx.cardview.widget.CardView
+            android:layout_marginLeft="5dp"
+            android:layout_weight="1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="10dp"
+            android:layout_marginTop="10dp"
+            app:cardElevation="0dp"
+            >
+            <LinearLayout
+                android:id="@+id/go"
+                android:layout_width="match_parent"
+                android:background="@color/colorPrimary"
+                android:layout_height="wrap_content">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="Go"
+                    android:textColor="#fff"
+                    android:padding="10dp"
+                    android:gravity="center"
+                    />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </LinearLayout>
+
 
 </LinearLayout>

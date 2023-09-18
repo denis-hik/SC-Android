@@ -5,6 +5,7 @@ import static sc.denishik.ru.other.Modals.showStartModal;
 import static sc.denishik.ru.other.Utils.isServiceRunning;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -22,10 +23,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.yandex.mapkit.MapKitFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.Random;
 
 import sc.denishik.ru.other.Modals;
@@ -36,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
 	private static final int BLUETOOTH_PRIVILEGED = 3;
 	private static final int ACCESS_FINE_LOCATION = 4;
 	private ArrayList<HashMap<String, Object>> listScooters = new ArrayList<>();
+	private com.google.android.material.bottomsheet.BottomSheetDialog dialog;
 
 	private LinearLayout linear1;
 	private LinearLayout blu_err;
@@ -48,58 +52,53 @@ public class MainActivity extends AppCompatActivity {
 		super.onCreate(_savedInstanceState);
 		setContentView(R.layout.main);
 		initialize(_savedInstanceState);
-		if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-			if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
-					!= PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_ADMIN)
-					!= PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
-					!= PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_ADVERTISE)
-					!= PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_PRIVILEGED)
-					!= PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-					!= PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-					!= PackageManager.PERMISSION_GRANTED) {
-				blu_err.setVisibility(View.VISIBLE);
-			}
-			String[] s = new String[]{
+		if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH)
+				!= PackageManager.PERMISSION_GRANTED
+				|| ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_ADMIN)
+				!= PackageManager.PERMISSION_GRANTED
+				|| ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_PRIVILEGED)
+				!= PackageManager.PERMISSION_GRANTED
+				|| ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+				!= PackageManager.PERMISSION_GRANTED
+				|| ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
+				!= PackageManager.PERMISSION_GRANTED
+				|| ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+				!= PackageManager.PERMISSION_GRANTED
+				|| ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
+				!= PackageManager.PERMISSION_GRANTED) {
+			// Request Bluetooth permissions
+			String[][] s = {new String[]{
+					Manifest.permission.BLUETOOTH,
 					Manifest.permission.BLUETOOTH_CONNECT,
 					Manifest.permission.BLUETOOTH_ADMIN,
-					Manifest.permission.BLUETOOTH_SCAN,
-					Manifest.permission.BLUETOOTH_ADVERTISE,
 					Manifest.permission.BLUETOOTH_PRIVILEGED,
 					Manifest.permission.ACCESS_COARSE_LOCATION,
 					Manifest.permission.ACCESS_FINE_LOCATION
-			};
-			showPermissionModal(this, () -> ActivityCompat.requestPermissions(
-				MainActivity.this,
-				s,
-				REQUEST_BLUETOOTH_PERMISSION
-			));
-			return;
-		} else {
-			if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH)
-					!= PackageManager.PERMISSION_GRANTED
-					|| ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_PRIVILEGED)
-					!= PackageManager.PERMISSION_GRANTED
-					|| ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-					!= PackageManager.PERMISSION_GRANTED
-					|| ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-					!= PackageManager.PERMISSION_GRANTED
-					|| ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
-					!= PackageManager.PERMISSION_GRANTED) {
-				blu_err.setVisibility(View.VISIBLE);
-				String[] s = new String[]{
-						Manifest.permission.BLUETOOTH,
+			}};
+			if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+				s[0] = new String[]{
+						Manifest.permission.BLUETOOTH_CONNECT,
 						Manifest.permission.BLUETOOTH_ADMIN,
+						Manifest.permission.BLUETOOTH_SCAN,
+						Manifest.permission.BLUETOOTH_ADVERTISE,
 						Manifest.permission.BLUETOOTH_PRIVILEGED,
 						Manifest.permission.ACCESS_COARSE_LOCATION,
 						Manifest.permission.ACCESS_FINE_LOCATION
 				};
-				showPermissionModal(this, () -> ActivityCompat.requestPermissions(
-					MainActivity.this,
-					s,
-					REQUEST_BLUETOOTH_PERMISSION
-				));
-				return;
 			}
+			showPermissionModal(this, dialog -> {
+				MainActivity.this.dialog = dialog;
+				ActivityCompat.requestPermissions(
+						MainActivity.this,
+						s[0],
+						REQUEST_BLUETOOTH_PERMISSION
+				);
+			});
+
+			showMessage("enable permission blu");
+			Log.d("", "onCreate: blu no");
+			blu_err.setVisibility(View.VISIBLE);
+			return;
 		}
 		Log.d("", "onCreate: blu yes");
 		initializeLogic();
@@ -116,15 +115,18 @@ public class MainActivity extends AppCompatActivity {
 	public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
 		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 		if (requestCode == ACCESS_FINE_LOCATION) {
-			if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-					!= PackageManager.PERMISSION_GRANTED) {
-				ActivityCompat.requestPermissions(
-						this,
-						new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-						ACCESS_FINE_LOCATION
-				);
-				return;
+			if (Objects.equals(getSharedPreferences("file", MODE_PRIVATE).getString("isLoc", "0"), "1")) {
+				if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+						!= PackageManager.PERMISSION_GRANTED) {
+					ActivityCompat.requestPermissions(
+							this,
+							new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+							ACCESS_FINE_LOCATION
+					);
+					return;
+				}
 			}
+
 		}
 		if (requestCode == REQUEST_BLUETOOTH_PERMISSION) {
 			if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -138,6 +140,9 @@ public class MainActivity extends AppCompatActivity {
 							REQUEST_LOCATION_PERMISSION
 					);
 				} else {
+					if (dialog != null) {
+						dialog.dismiss();
+					}
 					initializeLogic();
 					blu_err.setVisibility(View.GONE);
 					Log.d("", "onRequestPermissionsResult: blu yes");
@@ -149,6 +154,9 @@ public class MainActivity extends AppCompatActivity {
 			}
 		} else if (requestCode == REQUEST_LOCATION_PERMISSION) {
 			if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+				if (dialog != null) {
+					dialog.dismiss();
+				}
 				initializeLogic();
 				blu_err.setVisibility(View.GONE);
 				Log.d("", "onRequestPermissionsResult: blu yes");
@@ -159,7 +167,11 @@ public class MainActivity extends AppCompatActivity {
 			}
 		} else if (requestCode == BLUETOOTH_PRIVILEGED) {
 			if (grantResults.length > 0 && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
-
+				if (dialog != null) {
+					dialog.dismiss();
+				}
+				initializeLogic();
+				blu_err.setVisibility(View.GONE);
 				Log.d("", "BLUETOOTH_PRIVILEGED: blu yes");
 			} else {
 				blu_err.setVisibility(View.VISIBLE);
