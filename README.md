@@ -1,5 +1,4 @@
 # SC-Android
-[<img src="https://github.com/WikiEducationFoundation/apps-android-wikiedudashboard/blob/development/screenshots/google_play_badge.png" width="160" height="70" />](https://play.google.com/store/apps/details?id=sc.denishik.ru)
 
  Scooter App for midway i pro
 
