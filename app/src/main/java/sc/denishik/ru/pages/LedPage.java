@@ -38,6 +38,7 @@ public class LedPage extends Fragment {
 
     private TextView ws_url;
     private float speed_old = 0;
+    private boolean isPArking_old = false;
     private ImageView back;
     private ImageView refresh;
     private Client client;
@@ -64,10 +65,16 @@ public class LedPage extends Fragment {
                 Log.d("onRec", String.valueOf(intent.getAction()));
                 HashMap<String, Object> temp = (HashMap<String, Object>) intent.getSerializableExtra("data");
                 if (temp != null && isConnect) {
-                    float speed = new BaseParams(temp).getSpeed();
+                    BaseParams params = new BaseParams(temp);
+                    float speed = params.getSpeed();
+                    boolean isParking = params.getLockSw();
                     if (speed_old != speed) {
                         speed_old = speed;
-                        client.sendWS("_n9", String.valueOf(((int) speed) * 30));
+                        client.sendWS("_n9", String.valueOf(((int) speed) * 8.5));
+                    }
+                    if (isPArking_old != isParking) {
+                        isPArking_old = isParking;
+                        client.sendWS("_n2", !isParking ? "3" : "0");
                     }
                 }
             }
@@ -160,6 +167,9 @@ public class LedPage extends Fragment {
             }
             isConnect = false;
             isSend = false;
+            ledsList = new ArrayList<>();
+            adapter = new Adapters.ListviewLedAdapter(ledsList, activity);
+            list.setAdapter(adapter);
             ledsList.add(new LedInfo("Refreshing", false));
             adapter.notifyDataSetChanged();
             client = new Client(activity, callbackWS);

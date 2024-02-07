@@ -4,6 +4,8 @@ import static sc.denishik.ru.midwayApi.base.KeysBaseParam.LIGHT_KEY;
 import static sc.denishik.ru.midwayApi.base.KeysBaseParam.LOCK_KEY;
 import static sc.denishik.ru.midwayApi.base.KeysBaseParam.MAX_KEY;
 import static sc.denishik.ru.midwayApi.base.KeysBaseParam.MODE_KEY;
+import static sc.denishik.ru.other.Config.SCOOTER_ADV_PARAMS_DISABLE;
+import static sc.denishik.ru.other.Config.SCOOTER_ADV_PARAMS_SHOW;
 import static sc.denishik.ru.other.Config.SCOOTER_CONNECT_COMMAND;
 import static sc.denishik.ru.other.Config.SCOOTER_GET_DATA_PARAMS_COMMAND;
 import static sc.denishik.ru.other.Config.SCOOTER_SEND_DATA_PARAMS_COMMAND;
@@ -57,6 +59,8 @@ public class RemoteView extends Fragment {
     private Button gear0;
     private Button gear1;
     private Button gear2;
+    private Button showAdvParams;
+    private Button disableAdvParams;
     private TextView max_text;
     private BroadcastReceiver mMessageReceiver;
 
@@ -111,7 +115,15 @@ public class RemoteView extends Fragment {
         gear0 = _view.findViewById(R.id.gear0);
         gear1 = _view.findViewById(R.id.gear1);
         gear2 = _view.findViewById(R.id.gear2);
-
+//        showAdvParams = _view.findViewById(R.id.showAdvParams);
+//        disableAdvParams = _view.findViewById(R.id.disableAdvParams);
+//
+//        showAdvParams.setOnClickListener(v -> {
+//            handleAdvParamsMode(true);
+//        });
+//        disableAdvParams.setOnClickListener(v -> {
+//            handleAdvParamsMode(false);
+//        });
         parking.setOnClickListener(v -> {
             parking_image.setImageDrawable(getActivity().getDrawable(params.getLockSw() ? R.drawable.parking : R.drawable.parking_off));
             handleParking();
@@ -174,6 +186,12 @@ public class RemoteView extends Fragment {
         // You can also include some extra data.
         i.putExtra("key", MODE_KEY);
         i.putExtra("value",  mode);
+        getActivity().startService(i);
+    }
+    private  void handleAdvParamsMode(boolean isMode) {
+        Intent i = new Intent(getContext(), ServiceScooter.class);
+        Log.d("", "handleAdvParamsMode: ".concat(String.valueOf(isMode)));
+        i.putExtra("command", isMode ? SCOOTER_ADV_PARAMS_SHOW : SCOOTER_ADV_PARAMS_DISABLE);
         getActivity().startService(i);
     }
 

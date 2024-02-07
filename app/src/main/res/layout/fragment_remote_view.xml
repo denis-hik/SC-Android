@@ -131,6 +131,26 @@
                 android:text="Mode 3"
             />
         </LinearLayout>
+<!--        <LinearLayout-->
+<!--            android:paddingLeft="10dp"-->
+<!--            android:paddingRight="10dp"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="50dp">-->
+<!--            <Button-->
+<!--                android:id="@+id/showAdvParams"-->
+<!--                android:layout_width="100dp"-->
+<!--                android:layout_weight="1"-->
+<!--                android:layout_height="match_parent"-->
+<!--                android:text="Adv on"-->
+<!--            />-->
+<!--            <Button-->
+<!--                android:id="@+id/disableAdvParams"-->
+<!--                android:layout_weight="1"-->
+<!--                android:layout_width="100dp"-->
+<!--                android:layout_height="match_parent"-->
+<!--                android:text="Adv off"-->
+<!--            />-->
+<!--        </LinearLayout>-->
     </LinearLayout>
 
 

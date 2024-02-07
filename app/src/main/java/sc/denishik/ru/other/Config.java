@@ -6,6 +6,8 @@ public class Config {
     public final static String SCOOTER_GET_DATA_PARAMS_COMMAND = "scooter_get_params_data";
     public final static String SCOOTER_SEND_DATA_PARAMS_COMMAND = "scooter_send_params_data";
     public final static String SCOOTER_ERROR_CONNECT = "scooter_error_connect";
+    public final static String SCOOTER_ADV_PARAMS_SHOW = "scooter_adv_params_show";
+    public final static String SCOOTER_ADV_PARAMS_DISABLE = "scooter_adv_params_disable";
 
     public final static String SCOOTER_STATUS_CONNECTED = "scooter_connected";
     public final static String SCOOTER_STATUS_LOADING = "scooter_loading";

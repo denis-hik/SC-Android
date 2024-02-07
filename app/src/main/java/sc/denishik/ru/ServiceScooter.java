@@ -6,6 +6,8 @@ import static sc.denishik.ru.midwayApi.base.KeysBaseParam.LOCK_KEY;
 import static sc.denishik.ru.midwayApi.base.KeysBaseParam.MAX_KEY;
 import static sc.denishik.ru.midwayApi.base.KeysBaseParam.MODE_KEY;
 import static sc.denishik.ru.midwayApi.help.other.joinToString$default;
+import static sc.denishik.ru.other.Config.SCOOTER_ADV_PARAMS_DISABLE;
+import static sc.denishik.ru.other.Config.SCOOTER_ADV_PARAMS_SHOW;
 import static sc.denishik.ru.other.Config.SCOOTER_CONNECT_COMMAND;
 import static sc.denishik.ru.other.Config.SCOOTER_ERROR_CONNECT;
 import static sc.denishik.ru.other.Config.SCOOTER_GET_DATA_NAME_COMMAND;
@@ -189,6 +191,14 @@ public class ServiceScooter extends Service implements EventObserver {
                     handleParam(key, value);
                     break;
 
+                case SCOOTER_ADV_PARAMS_SHOW:
+                    isSendAdv = true;
+                    break;
+
+                case SCOOTER_ADV_PARAMS_DISABLE:
+                    isSendAdv = false;
+                    break;
+
                 default:
                     break;
             }
@@ -301,6 +311,22 @@ public class ServiceScooter extends Service implements EventObserver {
             byte b = value[0];
             byte b2 = value[1];
             Log.d(TAG, "b=".concat(String.valueOf(b).concat(" b2=" + String.valueOf(b2))));
+
+            if (isSendAdv) {
+//                byte[] commandAdvParams = new byte[8];
+//                commandAdvParams[0] =  (byte) -91;
+//                commandAdvParams[1] = (byte) 3;
+//                commandAdvParams[2] = (byte) (4 * 16 >> 8);
+//                commandAdvParams[3] = (byte) (4 * 16 & 255);
+//                commandAdvParams[4] = (byte) (15 >> 8);
+//                commandAdvParams[5] = (byte) (15 & 255);
+//                int MODBUS = CRC16.INSTANCE.MODBUS(commandAdvParams, 0, 6);
+//                commandAdvParams[6] = (byte) MODBUS;
+//                commandAdvParams[7] = (byte) (MODBUS >> 8);
+//                sendCommandScooter(false, commandAdvParams);
+                sendGetAdvParams(value);
+                return;
+            }
 
             byte[] command = {-91, b, (byte) ((byte) 1), 0, 0, 0, 0, 90};
             sendCommandScooter(false, command);
@@ -458,7 +484,7 @@ public class ServiceScooter extends Service implements EventObserver {
         String hexString$default = ByteArrayExtKt.toHexString$default(bArr, false, false, 3, null);
         LogUtils.d("parsingParamsBuf:  " + hexString$default + " count: " + i2 + " dataBuf:" + dataBuffer.getDataSize() + " readUInt16BE:" + readUInt16BE);
         System.arraycopy(bArr, 5, paramsBuf, readUInt16BE * 2, i2 * 2);
-        if (readUInt16BE == 6401) {
+        if (readUInt16BE == 64) {
             int readInt16BE$default = ByteArrayExtKt.readInt16BE$default(paramsBuf, 0, 1, null);
             int registerZero = readInt16BE$default;
             fullAdvParams.setCruiseSw(ValueExtKt.toBool(ValueExtKt.getBit(readInt16BE$default, 9)));
@@ -503,10 +529,6 @@ public class ServiceScooter extends Service implements EventObserver {
     }
 
     public final void getBaseParams(byte[] bArr, DataBuffer dataBuffer) {
-        if (fullAdvParams == null && !isSendAdv) {
-            isSendAdv = true;
-//            sendGetAdvParams(bArr);
-        }
         if (bArr[0] != -85) {
             if (bArr[0] == 1 && bArr[1] != 3) {
                 parsingParams(bArr, dataBuffer);
@@ -527,6 +549,12 @@ public class ServiceScooter extends Service implements EventObserver {
                 }
             }
         } else {
+            int readUInt16BEStart = ByteArrayExtKt.readUInt16BE(bArr, 2);
+            Log.d("readUInt16BEStart> ", String.valueOf(readUInt16BEStart).concat(String.valueOf(isSendAdv)));
+            if (readUInt16BEStart == 64) {
+                parsingParams(bArr, dataBuffer);
+
+            }
             int registerZero = ByteArrayExtKt.readUInt16BE(bArr, 21);
             int readUInt16BE = ByteArrayExtKt.readUInt16BE(bArr, 6);
             int readUInt16BE2 = ByteArrayExtKt.readUInt16BE(bArr, 8);
@@ -637,7 +665,7 @@ public class ServiceScooter extends Service implements EventObserver {
         byte[] bArr2 = new byte[8];
         Config config = Config.INSTANCE;
         bArr2[0] = config.isCustomHead() ? config.getCustomHeadEsc() : (byte) 1;
-        bArr2[1] = (byte) 8;
+        bArr2[1] = (byte) 3;
         int i2 = readUInt16BE$default + 8;
         bArr2[2] = (byte) (i2 >> 8);
         bArr2[3] = (byte) (i2 & 255);
