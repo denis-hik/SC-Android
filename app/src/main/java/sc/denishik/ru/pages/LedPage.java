@@ -67,6 +67,9 @@ public class LedPage extends Fragment {
                 if (temp != null && isConnect) {
                     BaseParams params = new BaseParams(temp);
                     float speed = params.getSpeed();
+                    if (speed > 30) {
+                        speed = 29;
+                    }
                     boolean isParking = params.getLockSw();
                     if (speed_old != speed) {
                         speed_old = speed;
