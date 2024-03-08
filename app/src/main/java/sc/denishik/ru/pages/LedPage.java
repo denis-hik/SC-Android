@@ -28,6 +28,7 @@ import sc.denishik.ru.ledApi.Client;
 import sc.denishik.ru.ledApi.LedInfo;
 import sc.denishik.ru.midwayApi.base.BaseParams;
 import sc.denishik.ru.other.Adapters;
+import sc.denishik.ru.other.CustomArrayList;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -45,7 +46,7 @@ public class LedPage extends Fragment {
     private boolean isConnect = false;
     private boolean isSend = false;
     private AppCompatActivity activity;
-    private ArrayList<LedInfo> ledsList;
+    private CustomArrayList<LedInfo> ledsList;
     private ListView list;
     private BroadcastReceiver mMessageReceiver;
     private Client.CallBack callbackWS;
@@ -82,7 +83,7 @@ public class LedPage extends Fragment {
                 }
             }
         };
-        ledsList = new ArrayList<>();
+        ledsList = new CustomArrayList<>();
         adapter = new Adapters.ListviewLedAdapter(ledsList, activity);
         callbackWS = new Client.CallBack() {
             @Override
@@ -170,7 +171,7 @@ public class LedPage extends Fragment {
             }
             isConnect = false;
             isSend = false;
-            ledsList = new ArrayList<>();
+            ledsList = new CustomArrayList<>();
             adapter = new Adapters.ListviewLedAdapter(ledsList, activity);
             list.setAdapter(adapter);
             ledsList.add(new LedInfo("Refreshing", false));
