@@ -165,6 +165,7 @@ public class ServiceScooter extends Service implements EventObserver {
                 case SCOOTER_LED_RECONNECT:
                     connectWS();
                     break;
+
                 case SCOOTER_CONNECT_COMMAND:
                     uuid = intent.getStringExtra("uuid");
                     device_name = intent.getStringExtra("name_device");
@@ -223,7 +224,11 @@ public class ServiceScooter extends Service implements EventObserver {
     private void sendWS() {
         if (clientWS != null) {
             if (clientWS.isConnected()) {
-                clientWS.sendWS("_n6", String.valueOf(((int) params.getSpeed()) * 8.5));
+                float speed = params.getSpeed();
+                if (speed > 30) {
+                    speed = 29;
+                }
+                clientWS.sendWS("_n6", String.valueOf(((int) speed) * 8.5));
             }
         }
     }
