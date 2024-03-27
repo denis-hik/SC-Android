@@ -92,7 +92,6 @@ public class Modals {
         final LinearLayout connect_block = lay.findViewById(R.id.connect_block);
         final LinearLayout base_block = lay.findViewById(R.id.base_block);
         final EditText connect_text = lay.findViewById(R.id.connect_text);
-        final EditText connect_uuid = lay.findViewById(R.id.connect_uuid);
         final ImageView connect_go = lay.findViewById(R.id.connect_go);
         final ImageView connect = lay.findViewById(R.id.connect);
         final ImageView connect_back = lay.findViewById(R.id.connect_back);
@@ -223,12 +222,8 @@ public class Modals {
                     connect_text.setError("ID not valid!");
                     return;
                 }
-                if (String.valueOf(connect_uuid.getText()).length() < 6) {
-                    connect_uuid.setError("ID not valid!");
-                    return;
-                }
                 connect_text.setError(null);
-                Scooter scooter = new Scooter("Unknown", String.valueOf(connect_uuid.getText()), "0%", String.valueOf(connect_text.getText()));
+                Scooter scooter = new Scooter("Unknown", "", "0%", String.valueOf(connect_text.getText()));
                 Intent i = new Intent(activity, ServiceScooter.class);
                 i.putExtra("command", SCOOTER_CONNECT_COMMAND);
                 i.putExtra("uuid", scooter.getUUID());

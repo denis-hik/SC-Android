@@ -102,12 +102,6 @@
 					android:layout_height="50dp"
 					android:hint="Address"
 					/>
-				<EditText
-					android:id="@+id/connect_uuid"
-					android:layout_width="match_parent"
-					android:layout_height="50dp"
-					android:hint="UUID"
-					/>
 			</LinearLayout>
 
 			<ImageView
