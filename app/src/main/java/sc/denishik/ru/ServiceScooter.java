@@ -223,7 +223,7 @@ public class ServiceScooter extends Service implements EventObserver {
     private void sendWS() {
         if (clientWS != null) {
             if (clientWS.isConnected()) {
-                clientWS.sendWS("_n9", String.valueOf(((int) params.getSpeed()) * 8.5));
+                clientWS.sendWS("_n6", String.valueOf(((int) params.getSpeed()) * 8.5));
             }
         }
     }
