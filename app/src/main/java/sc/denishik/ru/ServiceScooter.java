@@ -228,6 +228,9 @@ public class ServiceScooter extends Service implements EventObserver {
                 if (speed > 30) {
                     speed = 29;
                 }
+                if (params.getLockSw()) {
+                    speed = 0;
+                }
                 clientWS.sendWS("_n6", String.valueOf(((int) speed) * 8.5));
             }
         }
