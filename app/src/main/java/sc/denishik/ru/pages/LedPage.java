@@ -143,7 +143,7 @@ public class LedPage extends Fragment {
         };
         ledsList.add(new LedInfo("connecting ws...", false));
         adapter.notifyDataSetChanged();
-        client = new Client(activity, callbackWS);
+        client = new Client(callbackWS);
     }
 
     @Override
@@ -176,7 +176,7 @@ public class LedPage extends Fragment {
             list.setAdapter(adapter);
             ledsList.add(new LedInfo("Refreshing", false));
             adapter.notifyDataSetChanged();
-            client = new Client(activity, callbackWS);
+            client = new Client(callbackWS);
         });
 
         return view;

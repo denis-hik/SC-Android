@@ -6,7 +6,6 @@ import static sc.denishik.ru.midwayApi.base.KeysBaseParam.MAX_KEY;
 import static sc.denishik.ru.midwayApi.base.KeysBaseParam.MODE_KEY;
 import static sc.denishik.ru.other.Config.SCOOTER_ADV_PARAMS_DISABLE;
 import static sc.denishik.ru.other.Config.SCOOTER_ADV_PARAMS_SHOW;
-import static sc.denishik.ru.other.Config.SCOOTER_CONNECT_COMMAND;
 import static sc.denishik.ru.other.Config.SCOOTER_GET_DATA_PARAMS_COMMAND;
 import static sc.denishik.ru.other.Config.SCOOTER_SEND_DATA_PARAMS_COMMAND;
 

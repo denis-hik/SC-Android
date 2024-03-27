@@ -12,6 +12,10 @@ import static sc.denishik.ru.other.Config.SCOOTER_CONNECT_COMMAND;
 import static sc.denishik.ru.other.Config.SCOOTER_ERROR_CONNECT;
 import static sc.denishik.ru.other.Config.SCOOTER_GET_DATA_NAME_COMMAND;
 import static sc.denishik.ru.other.Config.SCOOTER_GET_DATA_PARAMS_COMMAND;
+import static sc.denishik.ru.other.Config.SCOOTER_LED;
+import static sc.denishik.ru.other.Config.SCOOTER_LED_CONNECT;
+import static sc.denishik.ru.other.Config.SCOOTER_LED_DISCONNECT;
+import static sc.denishik.ru.other.Config.SCOOTER_LED_RECONNECT;
 import static sc.denishik.ru.other.Config.SCOOTER_SEND_DATA_PARAMS_COMMAND;
 import static sc.denishik.ru.other.Config.SCOOTER_STATUS_CONNECTED;
 import static sc.denishik.ru.other.Config.SCOOTER_STATUS_ERROR;
@@ -20,7 +24,6 @@ import static sc.denishik.ru.other.Config.SCOOTER_STATUS_LOADING;
 import android.app.Activity;
 import android.app.Service;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -29,23 +32,18 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.blankj.utilcode.util.ConvertUtils;
 import com.blankj.utilcode.util.LogUtils;
 import com.blankj.utilcode.util.Utils;
 import com.google.gson.Gson;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Stack;
 import java.util.UUID;
@@ -58,12 +56,10 @@ import cn.wandersnail.ble.Request;
 import cn.wandersnail.ble.RequestBuilderFactory;
 import kotlin.collections.ArraysKt;
 import kotlin.collections.CollectionsKt;
-import kotlin.collections.SetsKt;
-import kotlin.internal.ProgressionUtilKt;
 import kotlin.jvm.internal.Intrinsics;
 import kotlin.text.CharsKt;
 import kotlin.text.Charsets;
-import kotlin.text.StringsKt;
+import sc.denishik.ru.ledApi.Client;
 import sc.denishik.ru.midwayApi.Config;
 import sc.denishik.ru.midwayApi.Scooter;
 import sc.denishik.ru.midwayApi.ScootersApi;
@@ -100,6 +96,7 @@ public class ServiceScooter extends Service implements EventObserver {
     private Handler handler;
     private static byte[] paramsBuf = new byte[1024];
     private boolean isSendNotif = false;
+    private Client clientWS;
     private String TAG = "ServiceScooter";
     private Runnable timeoutRunnable;
 
@@ -165,6 +162,9 @@ public class ServiceScooter extends Service implements EventObserver {
             String command = intent.getStringExtra("command");
 
             switch (command) {
+                case SCOOTER_LED_RECONNECT:
+                    connectWS();
+                    break;
                 case SCOOTER_CONNECT_COMMAND:
                     uuid = intent.getStringExtra("uuid");
                     device_name = intent.getStringExtra("name_device");
@@ -218,6 +218,47 @@ public class ServiceScooter extends Service implements EventObserver {
 
     public void onChanged(Object obj) {
         Log.d(TAG, "onChanged ".concat(String.valueOf(obj)));
+    }
+
+    private void sendWS() {
+        if (clientWS != null) {
+            if (clientWS.isConnected()) {
+                clientWS.sendWS("_n9", String.valueOf(((int) params.getSpeed()) * 8.5));
+            }
+        }
+    }
+    private void connectWS() {
+        clientWS = new Client(new Client.CallBack() {
+            @Override
+            public void onOpen() {
+                Intent intent = new Intent(SCOOTER_LED);
+                intent.putExtra("Status", SCOOTER_LED_CONNECT);
+                sendBroadcast(intent);
+            }
+
+            @Override
+            public void onDiscovered() {
+
+            }
+
+            @Override
+            public void onGetText(String s) {
+
+            }
+
+            @Override
+            public void onError(String err) {
+
+            }
+
+            @Override
+            public void onStop() {
+                Intent intent = new Intent(SCOOTER_LED);
+                intent.putExtra("Status", SCOOTER_LED_DISCONNECT);
+                sendBroadcast(intent);
+                clientWS = null;
+            }
+        });
     }
 
     @Override
@@ -337,6 +378,7 @@ public class ServiceScooter extends Service implements EventObserver {
             Log.d(TAG, "b=".concat(String.valueOf(b).concat(" b2=" + String.valueOf(b2))));
             Intent intent = new Intent(SCOOTER_CONNECT_COMMAND);
             intent.putExtra("Status", SCOOTER_STATUS_CONNECTED);
+            connectWS();
             sendBroadcast(intent);
             dataBuffer.append(value);
 //            prepareDataRX(value);
@@ -579,6 +621,7 @@ public class ServiceScooter extends Service implements EventObserver {
             params.setMetricInchSw(ValueExtKt.toBool(bitString[6]));
             params.setLockSw(ValueExtKt.toBool(bitString[7]));
             LogUtils.d("baseParams> " + params.toString());
+            sendWS();
             Intent intent = new Intent(SCOOTER_GET_DATA_PARAMS_COMMAND);
             intent.putExtra("data", params.toObject());
             sendBroadcast(intent);

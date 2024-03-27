@@ -21,9 +21,9 @@ public class Client {
     private String ip_client = Config.IP_CLIENT_DEFAULT;
     private String mask_client = Config.MASK_CLIENT_DEFAULT;
     private String id_board = Config.ID_BOARD;
-    private AppCompatActivity activity;
     private WebSocketClient client;
     private CallBack callBack;
+    private boolean isConnected = false;
     private checkServerCallback callBackCheck;
     private boolean isCheck = false;
     private URI url;
@@ -36,10 +36,9 @@ public class Client {
         void onStop();
     }
 
-    public Client(String ip_host, String ip_client, AppCompatActivity activity, CallBack callBack) {
+    public Client(String ip_host, String ip_client, CallBack callBack) {
         this.ip_client = ip_client;
         this.ip_host = ip_host;
-        this.activity = activity;
         callBackCheck = new checkServerCallback() {
             @Override
             public void onSuccess() {
@@ -57,8 +56,7 @@ public class Client {
         this.callBack = callBack;
     }
 
-    public Client(AppCompatActivity activity, CallBack callBack) {
-        this.activity = activity;
+    public Client(CallBack callBack) {
         this.callBack = callBack;
         callBackCheck = new checkServerCallback() {
             @Override
@@ -87,6 +85,10 @@ public class Client {
     public interface checkServerCallback {
         void onSuccess();
         void onError(String err);
+    }
+
+    public boolean isConnected() {
+        return isConnected;
     }
     public void checkServer(checkServerCallback callback) {
 //        RequestNetwork requestNetwork = new RequestNetwork(activity);
@@ -127,12 +129,14 @@ public class Client {
                 @Override
                 public void onOpen() {
                     Log.i(TAG, "WebSocket> Session is starting");
+                    isConnected = true;
                     Client.this.callBack.onOpen();
                 }
 
                 @Override
                 public void onTextReceived(String s) {
                     Log.i(TAG, "WebSocket> Message received msg:".concat(s));
+                    isConnected = true;
                     Client.this.callBack.onGetText(s);
                 }
 
@@ -156,12 +160,14 @@ public class Client {
                 @Override
                 public void onException(Exception e) {
                     Log.e(TAG,"WebSocket>" + String.valueOf(e.getMessage()));
+                    isConnected = false;
                     Client.this.callBack.onError(String.valueOf(e.getMessage()));
                 }
 
                 @Override
                 public void onCloseReceived() {
                     Log.i(TAG, "WebSocket> Closed ");
+                    isConnected = false;
                     Client.this.callBack.onStop();
                 }
             };

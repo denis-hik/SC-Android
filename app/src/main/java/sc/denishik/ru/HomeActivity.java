@@ -3,6 +3,9 @@ package sc.denishik.ru;
 import static sc.denishik.ru.other.Config.SCOOTER_ERROR_CONNECT;
 import static sc.denishik.ru.other.Config.SCOOTER_GET_DATA_NAME_COMMAND;
 import static sc.denishik.ru.other.Config.SCOOTER_GET_DATA_PARAMS_COMMAND;
+import static sc.denishik.ru.other.Config.SCOOTER_LED;
+import static sc.denishik.ru.other.Config.SCOOTER_LED_CONNECT;
+import static sc.denishik.ru.other.Config.SCOOTER_LED_DISCONNECT;
 
 import android.Manifest;
 import android.animation.Animator;
@@ -181,6 +184,12 @@ public class HomeActivity extends AppCompatActivity {
 							}
 						}
 						break;
+					case SCOOTER_LED_CONNECT:
+						showMessage("Connect LEDs");
+						break;
+					case SCOOTER_LED_DISCONNECT:
+						showMessage("disconnect LEDs");
+						break;
 
 					default:
 						break;
@@ -213,6 +222,7 @@ public class HomeActivity extends AppCompatActivity {
 		filter.addAction(SCOOTER_GET_DATA_NAME_COMMAND);
 		filter.addAction(SCOOTER_ERROR_CONNECT);
 		filter.addAction(SCOOTER_GET_DATA_PARAMS_COMMAND);
+		filter.addAction(SCOOTER_LED);
 		registerReceiver(mMessageReceiver, filter);
 
 		gps_pos = new Point(59.945933, 30.320045);
@@ -358,6 +368,7 @@ public class HomeActivity extends AppCompatActivity {
 		filter.addAction(SCOOTER_GET_DATA_NAME_COMMAND);
 		filter.addAction(SCOOTER_ERROR_CONNECT);
 		filter.addAction(SCOOTER_GET_DATA_PARAMS_COMMAND);
+		filter.addAction(SCOOTER_LED);
 		registerReceiver(mMessageReceiver, filter);
 		List<Sensor> mySensors = mySensorManager.getSensorList(Sensor.TYPE_ORIENTATION);
 //		mySensorManager.registerListener(mySensorEventListener, mySensors.get(0), SensorManager.SENSOR_DELAY_NORMAL);
