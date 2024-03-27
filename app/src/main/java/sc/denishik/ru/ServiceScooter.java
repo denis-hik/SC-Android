@@ -16,14 +16,20 @@ import static sc.denishik.ru.other.Config.SCOOTER_LED;
 import static sc.denishik.ru.other.Config.SCOOTER_LED_CONNECT;
 import static sc.denishik.ru.other.Config.SCOOTER_LED_DISCONNECT;
 import static sc.denishik.ru.other.Config.SCOOTER_LED_RECONNECT;
+import static sc.denishik.ru.other.Config.SCOOTER_LED_TEXT;
 import static sc.denishik.ru.other.Config.SCOOTER_SEND_DATA_PARAMS_COMMAND;
 import static sc.denishik.ru.other.Config.SCOOTER_STATUS_CONNECTED;
 import static sc.denishik.ru.other.Config.SCOOTER_STATUS_ERROR;
 import static sc.denishik.ru.other.Config.SCOOTER_STATUS_LOADING;
+import static sc.denishik.ru.other.NotificationCustom.showNotification;
 
 import android.app.Activity;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -31,6 +37,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 
 import com.blankj.utilcode.util.LogUtils;
 import com.blankj.utilcode.util.Utils;
@@ -97,8 +104,10 @@ public class ServiceScooter extends Service implements EventObserver {
     private static byte[] paramsBuf = new byte[1024];
     private boolean isSendNotif = false;
     private Client clientWS;
-    private String TAG = "ServiceScooter";
     private Runnable timeoutRunnable;
+    private String TAG = "ServiceScooter";
+    private String ChannelNotif = "ServiceScooterNotif";
+    NotificationManager notificationManager;
 
 
     @Nullable
@@ -147,16 +156,33 @@ public class ServiceScooter extends Service implements EventObserver {
                 handler.postDelayed(timeoutRunnable, 200L);
             }
         };
+        notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         getParamsList();
+        connectWS();
+    }
+
+    private void showNotif() {
+
+        // Create a notification channel for Android Oreo and above
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(ChannelNotif,
+                    "SC",
+                    NotificationManager.IMPORTANCE_DEFAULT);
+            notificationManager.createNotificationChannel(channel);
+        }
+        notificationManager.notify(0, showNotification(
+                ChannelNotif,
+                getApplicationContext(),
+                String.valueOf(clientWS.isConnected()),
+                String.valueOf(params != null ? params.getSpeed() : "not connected")
+        ));
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         super.onStartCommand(intent, flags, startId);
         this.intent = intent;
-        Log.d(TAG, "onStartCommand: I:".concat(String.valueOf(intent)
-                .concat(" flags:").concat(String.valueOf(flags))
-                .concat(" startId:")).concat(String.valueOf(startId)));
+        showNotif();
         startIdGlobal = startId;
         if (intent != null) {
             String command = intent.getStringExtra("command");
@@ -238,6 +264,7 @@ public class ServiceScooter extends Service implements EventObserver {
             public void onOpen() {
                 Intent intent = new Intent(SCOOTER_LED);
                 intent.putExtra("Status", SCOOTER_LED_CONNECT);
+                intent.putExtra("url", clientWS.getUrl());
                 sendBroadcast(intent);
             }
 
@@ -248,18 +275,27 @@ public class ServiceScooter extends Service implements EventObserver {
 
             @Override
             public void onGetText(String s) {
-
+                Intent intent = new Intent(SCOOTER_LED);
+                intent.putExtra("Status", SCOOTER_LED_TEXT);
+                intent.putExtra("text", s);
+                intent.putExtra("url", clientWS.getUrl());
+                sendBroadcast(intent);
             }
 
             @Override
             public void onError(String err) {
-
+                Intent intent = new Intent(SCOOTER_LED);
+                intent.putExtra("Status", SCOOTER_LED_TEXT);
+                intent.putExtra("text", err);
+                intent.putExtra("url", clientWS.getUrl());
+                sendBroadcast(intent);
             }
 
             @Override
             public void onStop() {
                 Intent intent = new Intent(SCOOTER_LED);
                 intent.putExtra("Status", SCOOTER_LED_DISCONNECT);
+                intent.putExtra("url", clientWS.getUrl());
                 sendBroadcast(intent);
                 clientWS = null;
             }
@@ -383,7 +419,6 @@ public class ServiceScooter extends Service implements EventObserver {
             Log.d(TAG, "b=".concat(String.valueOf(b).concat(" b2=" + String.valueOf(b2))));
             Intent intent = new Intent(SCOOTER_CONNECT_COMMAND);
             intent.putExtra("Status", SCOOTER_STATUS_CONNECTED);
-            connectWS();
             sendBroadcast(intent);
             dataBuffer.append(value);
 //            prepareDataRX(value);
