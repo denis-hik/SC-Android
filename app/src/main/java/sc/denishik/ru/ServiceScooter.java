@@ -1,5 +1,6 @@
 package sc.denishik.ru;
 
+import static sc.denishik.ru.ledApiBLU.Config.getDefaultClient;
 import static sc.denishik.ru.midwayApi.ScootersApi.connectScooter;
 import static sc.denishik.ru.midwayApi.base.KeysBaseParam.LIGHT_KEY;
 import static sc.denishik.ru.midwayApi.base.KeysBaseParam.LOCK_KEY;
@@ -37,7 +38,6 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 
 import com.blankj.utilcode.util.LogUtils;
 import com.blankj.utilcode.util.Utils;
@@ -66,7 +66,8 @@ import kotlin.collections.CollectionsKt;
 import kotlin.jvm.internal.Intrinsics;
 import kotlin.text.CharsKt;
 import kotlin.text.Charsets;
-import sc.denishik.ru.ledApi.Client;
+import sc.denishik.ru.ledApiBLU.Commands;
+import sc.denishik.ru.ledApiWS.Client;
 import sc.denishik.ru.midwayApi.Config;
 import sc.denishik.ru.midwayApi.Scooter;
 import sc.denishik.ru.midwayApi.ScootersApi;
@@ -247,7 +248,7 @@ public class ServiceScooter extends Service implements EventObserver {
         Log.d(TAG, "onChanged ".concat(String.valueOf(obj)));
     }
 
-    private void sendWS() {
+    private void sendLed() {
         if (clientWS != null) {
             if (clientWS.isConnected()) {
                 float speed = params.getSpeed();
@@ -257,6 +258,10 @@ public class ServiceScooter extends Service implements EventObserver {
                 clientWS.sendWS("_n6", String.valueOf(((int) speed) * 8.5));
             }
         }
+        if (getDefaultClient() != null) {
+            sc.denishik.ru.ledApiBLU.Client client = getDefaultClient();
+            client.sendCommand(Commands.makePowerCommand(true));
+        }
     }
     private void connectWS() {
         clientWS = new Client(new Client.CallBack() {
@@ -265,6 +270,7 @@ public class ServiceScooter extends Service implements EventObserver {
                 Intent intent = new Intent(SCOOTER_LED);
                 intent.putExtra("Status", SCOOTER_LED_CONNECT);
                 intent.putExtra("url", clientWS.getUrl());
+                intent.putExtra("bl", getDefaultClient() != null);
                 sendBroadcast(intent);
             }
 
@@ -279,6 +285,7 @@ public class ServiceScooter extends Service implements EventObserver {
                 intent.putExtra("Status", SCOOTER_LED_TEXT);
                 intent.putExtra("text", s);
                 intent.putExtra("url", clientWS.getUrl());
+                intent.putExtra("bl", getDefaultClient() != null);
                 sendBroadcast(intent);
             }
 
@@ -288,6 +295,7 @@ public class ServiceScooter extends Service implements EventObserver {
                 intent.putExtra("Status", SCOOTER_LED_TEXT);
                 intent.putExtra("text", err);
                 intent.putExtra("url", clientWS.getUrl());
+                intent.putExtra("bl", getDefaultClient() != null);
                 sendBroadcast(intent);
             }
 
@@ -296,6 +304,7 @@ public class ServiceScooter extends Service implements EventObserver {
                 Intent intent = new Intent(SCOOTER_LED);
                 intent.putExtra("Status", SCOOTER_LED_DISCONNECT);
                 intent.putExtra("url", clientWS.getUrl());
+                intent.putExtra("bl", getDefaultClient() != null);
                 sendBroadcast(intent);
                 clientWS = null;
             }
@@ -661,7 +670,7 @@ public class ServiceScooter extends Service implements EventObserver {
             params.setMetricInchSw(ValueExtKt.toBool(bitString[6]));
             params.setLockSw(ValueExtKt.toBool(bitString[7]));
             LogUtils.d("baseParams> " + params.toString());
-            sendWS();
+            sendLed();
             Intent intent = new Intent(SCOOTER_GET_DATA_PARAMS_COMMAND);
             intent.putExtra("data", params.toObject());
             sendBroadcast(intent);

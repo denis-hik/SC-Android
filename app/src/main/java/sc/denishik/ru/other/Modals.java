@@ -1,5 +1,6 @@
 package sc.denishik.ru.other;
 
+import static sc.denishik.ru.ledApiBLU.Config.setDefaultClient;
 import static sc.denishik.ru.midwayApi.ScootersApi.getScooters;
 import static sc.denishik.ru.other.Config.SCOOTER_CONNECT_COMMAND;
 import static sc.denishik.ru.other.Config.SCOOTER_STATUS_CONNECTED;
@@ -21,16 +22,20 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 import sc.denishik.ru.HomeActivity;
 import sc.denishik.ru.R;
 import sc.denishik.ru.ServiceScooter;
+import sc.denishik.ru.ledApiBLU.Client;
+import sc.denishik.ru.ledApiBLU.LedBluDevice;
 import sc.denishik.ru.midwayApi.Scooter;
 import sc.denishik.ru.midwayApi.ScootersApi;
 
@@ -76,6 +81,90 @@ public class Modals {
             activity.getSharedPreferences("file", Context.MODE_PRIVATE).edit().putString("isLoc", isChecked ? "1" : "0").apply();
         });
 
+    }
+
+    public interface ICallback {
+        void onConnect(Client client);
+    }
+    public static void showModalLedsBluetooth(AppCompatActivity activity, ICallback callbackModal) {
+        final LinearLayout[] loading_item = new LinearLayout[1];
+        final LinearLayout[] loaded_item = new LinearLayout[1];
+        final boolean[] isShow = {false};
+        final com.google.android.material.bottomsheet.BottomSheetDialog dialog = new com.google.android.material.bottomsheet.BottomSheetDialog(activity);
+        View lay = activity.getLayoutInflater().inflate(R.layout.connect_view, null); dialog.setContentView(lay);
+        final LinearLayout linear1 = (LinearLayout)lay.findViewById(R.id.linear1);
+        final ListView listView1 = lay.findViewById(R.id.listview1);
+        final TextView title = lay.findViewById(R.id.title);
+        final ImageView empty = lay.findViewById(R.id.empty);
+        final ImageView refresh = lay.findViewById(R.id.refresh);
+        final ProgressBar loading = lay.findViewById(R.id.loading);
+        final LinearLayout connect_block = lay.findViewById(R.id.connect_block);
+        final LinearLayout base_block = lay.findViewById(R.id.base_block);
+        final EditText connect_text = lay.findViewById(R.id.connect_text);
+        final ImageView connect_go = lay.findViewById(R.id.connect_go);
+        final ImageView connect = lay.findViewById(R.id.connect);
+        final ImageView connect_back = lay.findViewById(R.id.connect_back);
+
+        AtomicReference<Client> client = new AtomicReference<>(new Client(activity));
+        Client.Callback callback = new Client.Callback() {
+            @Override
+            public void onSuccess(ArrayList<LedBluDevice> result) {
+                activity.runOnUiThread( () -> {
+                    if (result.size() > 0) {
+                        listView1.setVisibility(View.VISIBLE);
+                        listView1.setAdapter(new Adapters.ListviewLedsBLUAdapter(result, activity, (device, loading1, loaded) -> {
+                            loading_item[0] = loading1;
+                            loaded_item[0] = loaded;
+                            client.get().selectDevice(device);
+                            dialog.dismiss();
+                            setDefaultClient(client.get());
+                            callbackModal.onConnect(client.get());
+                        }));
+                        loading.setVisibility(View.GONE);
+                        connect_back.setVisibility(View.GONE);
+                    } else {
+                        connect.setVisibility(View.GONE);
+                        refresh.setVisibility(View.GONE);
+                        empty.setVisibility(View.GONE);
+                        base_block.setVisibility(View.VISIBLE);
+                        loading.setVisibility(View.VISIBLE);
+                        listView1.setVisibility(View.GONE);
+                        connect_block.setVisibility(View.GONE);
+                        connect_back.setVisibility(View.GONE);
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String err) {
+                loading_item[0].setVisibility(View.GONE);
+                loaded_item[0].setVisibility(View.VISIBLE);
+                connect.setVisibility(View.VISIBLE);
+                loading.setVisibility(View.GONE);
+                empty.setVisibility(View.VISIBLE);
+                listView1.setVisibility(View.GONE);
+                refresh.setVisibility(View.VISIBLE);
+                base_block.setVisibility(View.VISIBLE);
+                connect_block.setVisibility(View.GONE);
+                connect_back.setVisibility(View.GONE);
+            }
+        };
+
+        dialog.getWindow().findViewById(R.id.design_bottom_sheet).setBackgroundResource(android.R.color.transparent);
+        dialog.show();
+
+        title.setText("Connect LED");
+        connect.setImageResource(R.drawable.refresh);
+        refresh.setImageResource(R.drawable.back);
+        refresh.setOnClickListener(v -> {
+            dialog.dismiss();
+        });
+        connect.setOnClickListener(v -> {
+            client.set(new Client(activity));
+            client.get().onSearch(callback);
+        });
+
+        client.get().onSearch(callback);
     }
 
     public static void showStartModal(AppCompatActivity activity, LinearLayout blu_err) {

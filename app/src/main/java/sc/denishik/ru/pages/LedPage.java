@@ -1,20 +1,20 @@
 package sc.denishik.ru.pages;
 
-import static sc.denishik.ru.midwayApi.base.KeysBaseParam.MODE_KEY;
+import static sc.denishik.ru.ledApiBLU.Config.setDefaultClient;
 import static sc.denishik.ru.other.Config.SCOOTER_LED;
 import static sc.denishik.ru.other.Config.SCOOTER_LED_CONNECT;
 import static sc.denishik.ru.other.Config.SCOOTER_LED_DISCONNECT;
 import static sc.denishik.ru.other.Config.SCOOTER_LED_ERROR;
 import static sc.denishik.ru.other.Config.SCOOTER_LED_RECONNECT;
 import static sc.denishik.ru.other.Config.SCOOTER_LED_TEXT;
-import static sc.denishik.ru.other.Config.SCOOTER_SEND_DATA_PARAMS_COMMAND;
+import static sc.denishik.ru.other.Modals.showModalLedsBluetooth;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,10 +28,11 @@ import androidx.viewpager.widget.ViewPager;
 
 import sc.denishik.ru.R;
 import sc.denishik.ru.ServiceScooter;
-import sc.denishik.ru.ledApi.Client;
-import sc.denishik.ru.ledApi.LedInfo;
+import sc.denishik.ru.ledApiBLU.Client;
+import sc.denishik.ru.ledApiWS.LedInfo;
 import sc.denishik.ru.other.Adapters;
 import sc.denishik.ru.other.CustomArrayList;
+import sc.denishik.ru.other.Modals;
 
 public class LedPage extends Fragment {
 
@@ -40,6 +41,7 @@ public class LedPage extends Fragment {
     private boolean isPArking_old = false;
     private ImageView back;
     private ImageView refresh;
+    private ImageView bluetooth;
     private boolean isConnect = false;
     private boolean isSend = false;
     private AppCompatActivity activity;
@@ -48,6 +50,8 @@ public class LedPage extends Fragment {
     private BroadcastReceiver mMessageReceiver;
     private Adapters.ListviewLedAdapter adapter;
     private String TAG = "LedPage";
+
+    private Client clientBL;
 
     public LedPage(AppCompatActivity activity) {
         this.activity = activity;
@@ -66,6 +70,10 @@ public class LedPage extends Fragment {
                 if (intent.getAction() != null) {
                     String s = intent.getStringExtra("Status");
                     String url = intent.getStringExtra("url");
+                    boolean bl = intent.getBooleanExtra("bl", false);
+
+                    bluetooth.setBackgroundColor(clientBL != null ? Color.parseColor("#FFA7E6A9") : activity.getResources().getColor(R.color.colorControlHighlight  ));
+
                     if (activity != null) {
                         activity.runOnUiThread(() -> {
                             ws_url.setText(url);
@@ -129,6 +137,7 @@ public class LedPage extends Fragment {
         ws_url = view.findViewById(R.id.ws_url);
         back = view.findViewById(R.id.back);
         refresh = view.findViewById(R.id.refresh);
+        bluetooth = view.findViewById(R.id.bluetooth);
         list = view.findViewById(R.id.list);
         list.setAdapter(adapter);
 
@@ -143,6 +152,18 @@ public class LedPage extends Fragment {
                 Intent i = new Intent(getContext(), ServiceScooter.class);
                 i.putExtra("command", SCOOTER_LED_RECONNECT);
                 getActivity().startService(i);
+            }
+        });
+
+        bluetooth.setOnClickListener(v -> {
+            if (clientBL != null) {
+                clientBL.unSelectDevice();
+                clientBL = null;
+                setDefaultClient(null);
+            } else {
+                showModalLedsBluetooth(activity, client -> {
+                    clientBL = client;
+                });
             }
         });
 

@@ -1,9 +1,6 @@
 package sc.denishik.ru.other;
 
 import android.content.Context;
-import android.content.res.Resources;
-import android.graphics.Color;
-import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,7 +11,6 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentPagerAdapter;
@@ -22,10 +18,10 @@ import androidx.fragment.app.FragmentPagerAdapter;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import sc.denishik.ru.R;
-import sc.denishik.ru.ledApi.LedInfo;
+import sc.denishik.ru.ledApiWS.LedInfo;
+import sc.denishik.ru.ledApiBLU.LedBluDevice;
 import sc.denishik.ru.midwayApi.Scooter;
 import sc.denishik.ru.pages.HomePage;
 import sc.denishik.ru.pages.InfoView;
@@ -84,6 +80,61 @@ public class Adapters {
 
             name.setText(String.valueOf(_data.get(_position).getName()));
             des.setText(_data.get(_position).getUUID());
+
+            return _view;
+        }
+    }
+    static public class ListviewLedsBLUAdapter extends BaseAdapter {
+        public interface ListCallback {
+            void onClick(LedBluDevice device, LinearLayout loading, LinearLayout loaded);
+        }
+
+        ArrayList<LedBluDevice> _data;
+        AppCompatActivity _activity;
+        ListCallback _callback;
+
+        public ListviewLedsBLUAdapter(ArrayList<LedBluDevice> _arr, AppCompatActivity activity, ListCallback callback) {
+            _data = _arr;
+            _activity = activity;
+            _callback = callback;
+        }
+
+        @Override
+        public int getCount() {
+            return _data.size();
+        }
+
+        @Override
+        public LedBluDevice getItem(int _index) {
+            return _data.get(_index);
+        }
+
+        @Override
+        public long getItemId(int _index) {
+            return _index;
+        }
+
+        @Override
+        public View getView(final int _position, View _v, ViewGroup _container) {
+            LayoutInflater _inflater = _activity.getLayoutInflater();
+            View _view = _v;
+            if (_view == null) {
+                _view = _inflater.inflate(R.layout.connect_item, null);
+            }
+
+            final LinearLayout linear1 = _view.findViewById(R.id.linear1);
+            final LinearLayout loading = _view.findViewById(R.id.loading);
+            final TextView name = _view.findViewById(R.id.name);
+            final TextView des = _view.findViewById(R.id.des);
+
+            linear1.setOnClickListener(v -> {
+                loading.setVisibility(View.VISIBLE);
+                linear1.setVisibility(View.GONE);
+                _callback.onClick(_data.get(_position), loading, linear1);
+            });
+
+            name.setText(String.valueOf(_data.get(_position).getName()));
+            des.setText(_data.get(_position).getAddress());
 
             return _view;
         }

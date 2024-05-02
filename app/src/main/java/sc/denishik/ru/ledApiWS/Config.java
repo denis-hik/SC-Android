@@ -1,4 +1,4 @@
-package sc.denishik.ru.ledApi;
+package sc.denishik.ru.ledApiWS;
 
 public class Config {
     public static String IP_HOST_DEFAULT = "192.168.4.1";
