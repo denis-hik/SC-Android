@@ -1,0 +1,8 @@
+package ru.denishik.unity.midwayApi.base;
+
+public class KeysBaseParam {
+    public final static int LIGHT_KEY = 0;
+    public final static int LOCK_KEY = 1;
+    public final static int MAX_KEY = 2;
+    public final static int MODE_KEY = 3;
+}
