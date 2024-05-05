@@ -36,10 +36,12 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.9.2'
 	//noinspection GradlePath
 	compileOnly files('D:/U/2022.3.6f1/Editor/Data/PlaybackEngines/AndroidPlayer/Variations/mono/Release/Classes/classes.jar')
+    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
 }
 
 task copyPlugin(type: Copy) {
     dependsOn assemble
+
     from ('build/outputs/aar')
     into ('D:/unity/My project/Assets/Plugins/Android')
     include (project.name + '-release.aar')
