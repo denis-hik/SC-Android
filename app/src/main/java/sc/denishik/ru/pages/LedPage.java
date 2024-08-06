@@ -1,16 +1,19 @@
 package sc.denishik.ru.pages;
 
-import static sc.denishik.ru.midwayApi.base.KeysBaseParam.MODE_KEY;
+import static sc.denishik.ru.ledApiBLU.Config.setDefaultClient;
 import static sc.denishik.ru.other.Config.SCOOTER_LED;
 import static sc.denishik.ru.other.Config.SCOOTER_LED_CONNECT;
 import static sc.denishik.ru.other.Config.SCOOTER_LED_DISCONNECT;
+import static sc.denishik.ru.other.Config.SCOOTER_LED_ERROR;
 import static sc.denishik.ru.other.Config.SCOOTER_LED_RECONNECT;
-import static sc.denishik.ru.other.Config.SCOOTER_SEND_DATA_PARAMS_COMMAND;
+import static sc.denishik.ru.other.Config.SCOOTER_LED_TEXT;
+import static sc.denishik.ru.other.Modals.showModalLedsBluetooth;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -25,16 +28,12 @@ import androidx.viewpager.widget.ViewPager;
 
 import sc.denishik.ru.R;
 import sc.denishik.ru.ServiceScooter;
-import sc.denishik.ru.ledApi.Client;
-import sc.denishik.ru.ledApi.LedInfo;
+import sc.denishik.ru.ledApiBLU.Client;
+import sc.denishik.ru.ledApiWS.LedInfo;
 import sc.denishik.ru.other.Adapters;
 import sc.denishik.ru.other.CustomArrayList;
+import sc.denishik.ru.other.Modals;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link LedPage#newInstance} factory method to
- * create an instance of this fragment.
- */
 public class LedPage extends Fragment {
 
     private TextView ws_url;
@@ -42,14 +41,17 @@ public class LedPage extends Fragment {
     private boolean isPArking_old = false;
     private ImageView back;
     private ImageView refresh;
+    private ImageView bluetooth;
     private boolean isConnect = false;
     private boolean isSend = false;
     private AppCompatActivity activity;
     private CustomArrayList<LedInfo> ledsList;
     private ListView list;
     private BroadcastReceiver mMessageReceiver;
-    private Client.CallBack callbackWS;
     private Adapters.ListviewLedAdapter adapter;
+    private String TAG = "LedPage";
+
+    private Client clientBL;
 
     public LedPage(AppCompatActivity activity) {
         this.activity = activity;
@@ -66,7 +68,18 @@ public class LedPage extends Fragment {
             @Override
             public void onReceive(Context context, Intent intent) {
                 if (intent.getAction() != null) {
-                    switch (intent.getAction()) {
+                    String s = intent.getStringExtra("Status");
+                    String url = intent.getStringExtra("url");
+                    boolean bl = intent.getBooleanExtra("bl", false);
+
+                    bluetooth.setBackgroundColor(clientBL != null ? Color.parseColor("#FFA7E6A9") : activity.getResources().getColor(R.color.colorControlHighlight  ));
+
+                    if (activity != null) {
+                        activity.runOnUiThread(() -> {
+                            ws_url.setText(url);
+                        });
+                    }
+                    switch (s) {
                         case SCOOTER_LED_CONNECT:
                             if (activity != null) {
                                 activity.runOnUiThread(() -> {
@@ -87,11 +100,32 @@ public class LedPage extends Fragment {
                                 });
                             }
                             break;
+                        case SCOOTER_LED_TEXT:
+                            if (activity != null) {
+                                String text = intent.getStringExtra("text");
+                                activity.runOnUiThread(() -> {
+                                    ledsList.add(new LedInfo(String.valueOf(text), true));
+                                    if (adapter != null) {
+                                        adapter.notifyDataSetChanged();
+                                    }
+                                });
+                            }
+                        case SCOOTER_LED_ERROR:
+                            if (activity != null) {
+                                String text = intent.getStringExtra("text");
+                                activity.runOnUiThread(() -> {
+                                    ledsList.add(new LedInfo(String.valueOf(text), false));
+                                    if (adapter != null) {
+                                        adapter.notifyDataSetChanged();
+                                    }
+                                });
+                            }
                     }
                 }
             }
         };
         adapter = new Adapters.ListviewLedAdapter(ledsList, activity);
+        activity.registerReceiver(mMessageReceiver, new IntentFilter(SCOOTER_LED));
     }
 
     @Override
@@ -103,6 +137,7 @@ public class LedPage extends Fragment {
         ws_url = view.findViewById(R.id.ws_url);
         back = view.findViewById(R.id.back);
         refresh = view.findViewById(R.id.refresh);
+        bluetooth = view.findViewById(R.id.bluetooth);
         list = view.findViewById(R.id.list);
         list.setAdapter(adapter);
 
@@ -112,9 +147,23 @@ public class LedPage extends Fragment {
 
         refresh.setOnClickListener(v -> {
             if (getActivity() != null) {
+                ledsList = new CustomArrayList<>();
+                adapter.notifyDataSetChanged();
                 Intent i = new Intent(getContext(), ServiceScooter.class);
                 i.putExtra("command", SCOOTER_LED_RECONNECT);
                 getActivity().startService(i);
+            }
+        });
+
+        bluetooth.setOnClickListener(v -> {
+            if (clientBL != null) {
+                clientBL.unSelectDevice();
+                clientBL = null;
+                setDefaultClient(null);
+            } else {
+                showModalLedsBluetooth(activity, client -> {
+                    clientBL = client;
+                });
             }
         });
 
@@ -137,7 +186,13 @@ public class LedPage extends Fragment {
         if (isvisible) {
             activity.registerReceiver(mMessageReceiver, new IntentFilter(SCOOTER_LED));
         } else {
-            activity.unregisterReceiver(mMessageReceiver);
+            if (mMessageReceiver != null) {
+                try {
+                    activity.unregisterReceiver(mMessageReceiver);
+                } catch (Exception ignored) {
+
+                }
+            }
         }
     }
 }

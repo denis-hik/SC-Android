@@ -1,16 +1,10 @@
-package sc.denishik.ru.ledApi;
+package sc.denishik.ru.ledApiWS;
 
 import android.util.Log;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 
-import sc.denishik.ru.other.RequestNetwork;
-import sc.denishik.ru.other.RequestNetworkController;
 import tech.gusavila92.websocketclient.WebSocketClient;
 
 

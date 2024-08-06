@@ -1,4 +1,4 @@
-package sc.denishik.ru.ledApi;
+package sc.denishik.ru.ledApiWS;
 
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;

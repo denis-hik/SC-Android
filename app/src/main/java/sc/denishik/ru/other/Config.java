@@ -15,6 +15,8 @@ public class Config {
 
     public final static String SCOOTER_LED = "scooter_led";
     public final static String SCOOTER_LED_CONNECT = "scooter_led_connected";
+    public final static String SCOOTER_LED_TEXT = "scooter_led_text";
+    public final static String SCOOTER_LED_ERROR = "scooter_led_err";
     public final static String SCOOTER_LED_DISCONNECT = "scooter_led_disconnected";
     public final static String SCOOTER_LED_RECONNECT = "scooter_led_reconnect";
 }
