@@ -72,8 +72,6 @@ public class UnityPlayerActivity extends Activity implements IUnityPlayerLifecyc
     {
         super.onStop();
 
-        if (!MultiWindowSupport.getAllowResizableWindow(this))
-            return;
 
         mUnityPlayer.pause();
     }
@@ -81,9 +79,6 @@ public class UnityPlayerActivity extends Activity implements IUnityPlayerLifecyc
     @Override protected void onStart()
     {
         super.onStart();
-
-        if (!MultiWindowSupport.getAllowResizableWindow(this))
-            return;
 
         mUnityPlayer.resume();
     }
@@ -95,8 +90,6 @@ public class UnityPlayerActivity extends Activity implements IUnityPlayerLifecyc
 
         MultiWindowSupport.saveMultiWindowMode(this);
 
-        if (MultiWindowSupport.getAllowResizableWindow(this))
-            return;
 
         mUnityPlayer.pause();
     }
@@ -105,9 +98,6 @@ public class UnityPlayerActivity extends Activity implements IUnityPlayerLifecyc
     @Override protected void onResume()
     {
         super.onResume();
-
-        if (MultiWindowSupport.getAllowResizableWindow(this) && !MultiWindowSupport.isMultiWindowModeChangedToTrue(this))
-            return;
 
         mUnityPlayer.resume();
     }

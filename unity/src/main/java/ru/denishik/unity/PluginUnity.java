@@ -12,7 +12,7 @@ import ru.denishik.unity.midwayApi.ScootersApi;
 
 public class PluginUnity {
     private static Activity unityActivity;
-    static ArrayList<Scooter> scooters = null;
+    static ArrayList<Scooter> scooters = new ArrayList<>();
 
     public static boolean fetchScooters() {
         if (unityActivity == null) {
@@ -33,7 +33,11 @@ public class PluginUnity {
         return true;
     }
 
-    public static ArrayList<Scooter> getScooters() {
-        return scooters;
+    public static Scooter[] getScooters() {
+        if (scooters.size() == 0) {
+            return scooters.toArray(new Scooter[0]);
+        }else {
+            return scooters.toArray(new Scooter[scooters.size()]);
+        }
     }
 }
