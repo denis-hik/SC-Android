@@ -1,6 +1,10 @@
 package sc.denishik.ru.other;
 
 import static sc.denishik.ru.ledApiBLU.Config.setDefaultClient;
+import static sc.denishik.ru.ledApiWS.Config.ID_BOARD;
+import static sc.denishik.ru.ledApiWS.Config.IP_CLIENT_DEFAULT;
+import static sc.denishik.ru.ledApiWS.Config.MASK_CLIENT_DEFAULT;
+import static sc.denishik.ru.ledApiWS.Config.PORT_CLIENT_DEFAULT;
 import static sc.denishik.ru.midwayApi.ScootersApi.getScooters;
 import static sc.denishik.ru.other.Config.SCOOTER_CONNECT_COMMAND;
 import static sc.denishik.ru.other.Config.SCOOTER_STATUS_CONNECTED;
@@ -11,6 +15,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Color;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.view.animation.Animation;
@@ -26,6 +32,8 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+
+import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.ArrayList;
 import java.util.Objects;
@@ -165,6 +173,100 @@ public class Modals {
         });
 
         client.get().onSearch(callback);
+    }
+
+    public static void showSettingsLed(AppCompatActivity activity) {
+        final com.google.android.material.bottomsheet.BottomSheetDialog dialog = new com.google.android.material.bottomsheet.BottomSheetDialog(activity);
+        View lay = activity.getLayoutInflater().inflate(R.layout.led_settings, null);
+        dialog.setContentView(lay);
+
+        final String[] ip_temp = {""};
+        final String[] port_temp = {""};
+        final String[] mask_temp = {""};
+        final String[] board_temp = {""};
+
+        final TextInputEditText ip = lay.findViewById(R.id.ip);
+        final TextInputEditText port = lay.findViewById(R.id.port);
+        final TextInputEditText mask = lay.findViewById(R.id.mask);
+        final TextInputEditText id_board = lay.findViewById(R.id.id_board);
+        final CardView save = lay.findViewById(R.id.save);
+
+        ip.setText(String.valueOf(IP_CLIENT_DEFAULT));
+        port.setText(String.valueOf(PORT_CLIENT_DEFAULT));
+        mask.setText(String.valueOf(MASK_CLIENT_DEFAULT));
+        id_board.setText(String.valueOf(ID_BOARD));
+
+        ip.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+                ip_temp[0] = String.valueOf(charSequence);
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+
+            }
+        });
+        port.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+                port_temp[0] = String.valueOf(charSequence);
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+
+            }
+        });
+        mask.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+                mask_temp[0] = String.valueOf(charSequence);
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+
+            }
+        });
+        id_board.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+                board_temp[0] = String.valueOf(charSequence);
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+
+            }
+        });
+
+        save.setOnClickListener(view -> {
+            sc.denishik.ru.ledApiWS.Config.SetPort(port_temp[0]);
+            sc.denishik.ru.ledApiWS.Config.SetIp(ip_temp[0]);
+            sc.denishik.ru.ledApiWS.Config.SetMask(mask_temp[0]);
+            sc.denishik.ru.ledApiWS.Config.SetBoard(board_temp[0]);
+        });
     }
 
     public static void showStartModal(AppCompatActivity activity, LinearLayout blu_err) {

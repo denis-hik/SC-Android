@@ -22,7 +22,7 @@ public class Client {
     private boolean isCheck = false;
     private URI url;
 
-    public static interface CallBack {
+    public interface CallBack {
         void onOpen();
         void onDiscovered();
         void onGetText(String s);
@@ -31,27 +31,13 @@ public class Client {
     }
 
     public Client(String ip_host, String ip_client, CallBack callBack) {
-        this.ip_client = ip_client;
-        this.ip_host = ip_host;
-        callBackCheck = new checkServerCallback() {
-            @Override
-            public void onSuccess() {
-                callBack.onDiscovered();
-                isCheck = true;
-            }
-
-            @Override
-            public void onError(String err) {
-                callBack.onError(err);
-                isCheck = false;
-            }
-        };
-        checkServer(callBackCheck);
         this.callBack = callBack;
-    }
-
-    public Client(CallBack callBack) {
-        this.callBack = callBack;
+        if (ip_client != null) {
+            this.ip_client = ip_client;
+        }
+        if (ip_host != null) {
+            this.ip_host = ip_host;
+        }
         callBackCheck = new checkServerCallback() {
             @Override
             public void onSuccess() {
@@ -70,6 +56,10 @@ public class Client {
 
         }
         connectServer();
+    }
+
+    public Client(CallBack callBack) {
+        this(null, null, callBack);
     }
 
     public String getUrl() {
