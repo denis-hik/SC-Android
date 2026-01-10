@@ -1,13 +1,24 @@
 # SC-Android
 
- Scooter App for midway i pro
+Android companion application for electric scooters. Designed for Midway-i Pro series.
 
--remote light and lock 
--max speed change on 35
--speed get
+### Features
+- Remote headlight control
+- Remote lock/unlock
+- Max speed configuration (up to 35 km/h)
+- Real-time speed feed
+- LED remote module support via Arduino:  
+  → [SC-Led-Arduino](https://github.com/denis-hik/SC-Led-Ardruino)
 
--led remote [SC-Led-Ardruino](https://github.com/denis-hik/SC-Led-Ardruino)
+### Supported Hardware
+- Midway i-Pro base board
+- BLE communication interface
+- Optional Arduino LED module
 
-![plot](/screens/photo0.jpg)
-![plot](/screens/photo1.jpg)
-![plot](/screens/photo2.jpg)
+### Screenshots
+
+<p>
+  <img src="/screens/photo0.jpg" width="240"/>
+  <img src="/screens/photo1.jpg" width="240"/>
+  <img src="/screens/photo2.jpg" width="240"/>
+</p>
