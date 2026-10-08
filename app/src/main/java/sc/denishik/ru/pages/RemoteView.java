@@ -50,6 +50,12 @@ public class RemoteView extends Fragment {
     private CardView parking;
     private CardView light;
     private BaseParams params;
+    private boolean kugooDevice;
+    private boolean noParking;
+    private boolean canToggleParking;
+    private boolean canSetNoParking;
+    private View speedControls;
+    private View gearControls;
     private ImageView parking_image;
     private ImageView light_image;
     private Button back;
@@ -78,21 +84,40 @@ public class RemoteView extends Fragment {
         mMessageReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
+                if (parking == null || light == null) return;
+                if (intent.hasExtra("command_error")) {
+                    android.widget.Toast.makeText(context, intent.getStringExtra("command_error"), android.widget.Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                kugooDevice = "kugoo".equals(intent.getStringExtra("source"));
+                noParking = kugooDevice && intent.getBooleanExtra("no_parking", false);
+                canToggleParking = intent.getBooleanExtra("can_toggle_parking", false);
+                canSetNoParking = intent.getBooleanExtra("can_set_no_parking", false);
+                boolean controlsEnabled = !kugooDevice;
+                speedControls.setVisibility(kugooDevice ? View.GONE : View.VISIBLE);
+                gearControls.setVisibility(kugooDevice ? View.GONE : View.VISIBLE);
+                parking.setEnabled(controlsEnabled || canToggleParking || canSetNoParking || noParking);
+                light.setEnabled(controlsEnabled || intent.getBooleanExtra("can_toggle_headlight", false));
+                max20.setEnabled(controlsEnabled);
+                max30.setEnabled(controlsEnabled);
+                gear0.setEnabled(controlsEnabled);
+                gear1.setEnabled(controlsEnabled);
+                gear2.setEnabled(controlsEnabled);
                 Log.d("onRec", String.valueOf(intent.getAction()));
                 HashMap<String, Object> temp = (HashMap<String, Object>) intent.getSerializableExtra("data");
                 if (temp != null) {
                     boolean isReDraw = false;
                     if (params != null) {
-                        isReDraw = params.equals(new BaseParams(temp));
+                        isReDraw = !params.equals(new BaseParams(temp));
                     } else {
                         isReDraw = true;
                     }
                     params = new BaseParams(temp);
                     if (isReDraw) {
-                        parking_image.setImageDrawable(getActivity().getDrawable(!params.getLockSw() ? R.drawable.parking : R.drawable.parking_off));
                         light_image.setImageDrawable(getActivity().getDrawable(params.getHeadLightSw() ? R.drawable.headlight : R.drawable.headlight_off));
                         max_text.setText(String.valueOf(params.getLimitMode3()));
                     }
+                    renderParking();
                 }
             }
         };
@@ -103,10 +128,17 @@ public class RemoteView extends Fragment {
                              Bundle savedInstanceState) {
         View _view = inflater.inflate(R.layout.fragment_remote_view, container, false);
 
+        speedControls = _view.findViewById(R.id.speed_controls);
+        gearControls = _view.findViewById(R.id.gear_controls);
+        speedControls.setVisibility(kugooDevice ? View.GONE : View.VISIBLE);
+        gearControls.setVisibility(kugooDevice ? View.GONE : View.VISIBLE);
+
         parking = _view.findViewById(R.id.parking);
+        parking.setEnabled(false);
         parking_image = _view.findViewById(R.id.parking_image);
         light_image = _view.findViewById(R.id.light_image);
         light = _view.findViewById(R.id.light);
+        light.setEnabled(false);
         max_text = _view.findViewById(R.id.max_text);
         back = _view.findViewById(R.id.back);
         max20 = _view.findViewById(R.id.max20);
@@ -124,11 +156,22 @@ public class RemoteView extends Fragment {
 //            handleAdvParamsMode(false);
 //        });
         parking.setOnClickListener(v -> {
-            parking_image.setImageDrawable(getActivity().getDrawable(params.getLockSw() ? R.drawable.parking : R.drawable.parking_off));
+            if (params == null) return;
+            if (kugooDevice && (noParking || !canToggleParking)) return;
+            if (!kugooDevice) parking_image.setImageDrawable(getActivity().getDrawable(params.getLockSw() ? R.drawable.parking : R.drawable.parking_off));
             handleParking();
         });
+        parking.setOnLongClickListener(v -> {
+            if (!kugooDevice || (!canSetNoParking && !noParking)) return false;
+            Intent command = new Intent(requireContext(), ServiceScooter.class);
+            command.putExtra("command", SCOOTER_SEND_DATA_PARAMS_COMMAND);
+            command.putExtra("key", LOCK_KEY);
+            command.putExtra("toggle_no_parking", true);
+            requireContext().startService(command);
+            return true;
+        });
         light.setOnClickListener(v -> {
-            light_image.setImageDrawable(getActivity().getDrawable(!params.getHeadLightSw() ? R.drawable.headlight : R.drawable.headlight_off));
+            if (params == null) return;
             handleLight();
         });
         back.setOnClickListener(v -> {
@@ -161,6 +204,17 @@ public class RemoteView extends Fragment {
         i.putExtra("key", LOCK_KEY);
         i.putExtra("value", true);
         getActivity().startService(i);
+    }
+
+    private void renderParking() {
+        if (noParking) {
+            parking_image.setImageResource(R.drawable.parking_blocked);
+            parking.setContentDescription("Без паркинга. Удерживайте, чтобы выключить режим");
+        } else {
+            boolean on = kugooDevice ? params.getLockSw() : !params.getLockSw();
+            parking_image.setImageResource(on ? R.drawable.parking : R.drawable.parking_off);
+            parking.setContentDescription(on ? "Паркинг включён" : "Паркинг выключен");
+        }
     }
 
     private void handleLight() {
@@ -200,6 +254,9 @@ public class RemoteView extends Fragment {
         if (isvisible) {
 
             getActivity().registerReceiver(mMessageReceiver, new IntentFilter(SCOOTER_GET_DATA_PARAMS_COMMAND));
+            Intent snapshot = new Intent(getActivity(), ServiceScooter.class);
+            snapshot.putExtra("command", sc.denishik.ru.other.Config.SCOOTER_GET_DATA_NAME_COMMAND);
+            getActivity().startService(snapshot);
         } else {
             try {
 

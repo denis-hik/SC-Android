@@ -1,5 +1,6 @@
 package sc.denishik.ru.midwayApi;
 
+import static sc.denishik.ru.kuggoApi.Config.NAME_SCOOTER_KUGOO_BLU;
 import static sc.denishik.ru.midwayApi.Config.NAME_SCOOTER_BLU;
 import static sc.denishik.ru.midwayApi.Config.PIN_CODE;
 import static sc.denishik.ru.other.Utils.isServiceRunning;
@@ -9,6 +10,9 @@ import android.annotation.SuppressLint;
 import android.app.Application;
 import android.bluetooth.BluetoothClass;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.le.ScanRecord;
+import android.bluetooth.le.ScanResult;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -24,6 +28,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 import cn.wandersnail.ble.ConnectionConfiguration;
@@ -38,6 +44,7 @@ public class ScootersApi {
     private static BluetoothConnect blu;
     private static BluetoothConnect.BluetoothConnectionListener _blu_bluetooth_connection_listener;
     private static String TAG = "ScootersApi";
+    private static final Set<String> kugooScanLogged = new HashSet<>();
 
     public interface getScooterCallback {
         void onGetScooter(ArrayList<Scooter> result);
@@ -48,29 +55,30 @@ public class ScootersApi {
     public static void getScooters(AppCompatActivity activity, getScooterCallback callback) {
         Log.d(TAG, "getScooters: onCreate");
         try {
+            final android.content.SharedPreferences bindPrefs =
+                    activity.getSharedPreferences("bind_state", Context.MODE_PRIVATE);
             ArrayList<BluetoothDevice> devicesTemp = new ArrayList<>();
             blu = new BluetoothConnect(activity);
             blu.getAllDevices(new BluetoothConnect.getAllDevicesCallback() {
                 @SuppressLint("MissingPermission")
                 @Override
                 public void onScan(ArrayList<BluetoothDevice> result, ArrayList<Device> result2) {
-
                     ArrayList<Scooter> scootersTemp = new ArrayList<>();
-                    Log.d(TAG, "onScan".concat(String.valueOf(result.toString())));
                     for (Device device : result2) {
                         Scooter s = new Scooter(device.getName(), String.valueOf(device.getOriginDevice()), "0%", String.valueOf(device.getAddress()), device);
+                        s.setIsBinded(bindPrefs.getBoolean(s.getAddress(), false));
                         if (String.valueOf(device.getName()).contains(NAME_SCOOTER_BLU)) {
                             scootersTemp.add(s);
                         }
                     }
                     for (BluetoothDevice device : result) {
                         Scooter s = new Scooter(device.getName(), String.valueOf(device.getType()), "0%", String.valueOf(device.getAddress()), device);
+                        s.setIsBinded(bindPrefs.getBoolean(s.getAddress(), false));
                         if (String.valueOf(device.getName()).contains(NAME_SCOOTER_BLU)) {
                             scootersTemp.add(s);
                         }
                     }
                     callback.onGetScooter(scootersTemp);
-
                 }
 
                 @Override
@@ -83,6 +91,87 @@ public class ScootersApi {
             callback.onGetError();
         }
 
+    }
+
+    private static void logKugooScanRecord(Device device) {
+        try {
+            String addr = device.getAddress();
+            if (addr != null && kugooScanLogged.contains(addr)) return;
+            if (addr != null) kugooScanLogged.add(addr);
+
+            byte[] scanBytes = tryGetScanRecordBytes(device);
+            if (scanBytes == null || scanBytes.length == 0) return;
+
+            StringBuilder sb = new StringBuilder(scanBytes.length * 3);
+            for (int i = 0; i < scanBytes.length; i++) {
+                sb.append(String.format("%02X", scanBytes[i]));
+                if (i + 1 < scanBytes.length) sb.append(' ');
+            }
+            Log.d("KugooScan", "addr=" + device.getAddress() + " name=" + device.getName() + " scanRecord=" + sb);
+
+            int index = 0;
+            while (index < scanBytes.length) {
+                int len = scanBytes[index] & 0xFF;
+                if (len == 0) break;
+                int typeIndex = index + 1;
+                int valueIndex = index + 2;
+                int valueLen = len - 1;
+                if (typeIndex >= scanBytes.length) break;
+                int type = scanBytes[typeIndex] & 0xFF;
+
+                if (valueIndex + valueLen > scanBytes.length) break;
+
+                if (type == 0x16 && valueLen >= 2) {
+                    int uuid = (scanBytes[valueIndex] & 0xFF) | ((scanBytes[valueIndex + 1] & 0xFF) << 8);
+                    if (uuid == 0xFD50) {
+                        StringBuilder sd = new StringBuilder();
+                        for (int i = valueIndex + 2; i < valueIndex + valueLen; i++) {
+                            sd.append(String.format("%02X", scanBytes[i]));
+                            if (i + 1 < valueIndex + valueLen) sd.append(' ');
+                        }
+                        Log.d("KugooScan", "addr=" + device.getAddress() + " FD50 serviceData=" + sd);
+                    }
+                } else if (type == 0xFF && valueLen >= 2) {
+                    int companyId = (scanBytes[valueIndex] & 0xFF) | ((scanBytes[valueIndex + 1] & 0xFF) << 8);
+                    StringBuilder md = new StringBuilder();
+                    for (int i = valueIndex + 2; i < valueIndex + valueLen; i++) {
+                        md.append(String.format("%02X", scanBytes[i]));
+                        if (i + 1 < valueIndex + valueLen) md.append(' ');
+                    }
+                    Log.d("KugooScan", "addr=" + device.getAddress() + " mfgData companyId=0x" + String.format("%04X", companyId) + " data=" + md);
+                } else if (type == 0x09 || type == 0x08) {
+                    try {
+                        String name = new String(scanBytes, valueIndex, valueLen, java.nio.charset.StandardCharsets.UTF_8);
+                        Log.d("KugooScan", "addr=" + device.getAddress() + " advName=" + name);
+                    } catch (Throwable ignored) {
+                    }
+                }
+                index += (len + 1);
+            }
+        } catch (Throwable t) {
+            Log.w("KugooScan", "Failed to read scanRecord for " + device.getAddress(), t);
+        }
+    }
+
+    @Nullable
+    private static byte[] tryGetScanRecordBytes(Device device) {
+        try {
+            java.lang.reflect.Method m = device.getClass().getMethod("getScanResult");
+            Object r = m.invoke(device);
+            if (r instanceof ScanResult) {
+                ScanRecord sr = ((ScanResult) r).getScanRecord();
+                if (sr != null) return sr.getBytes();
+            }
+        } catch (Throwable ignored) {
+        }
+        try {
+            java.lang.reflect.Method m = device.getClass().getMethod("getScanRecord");
+            Object r = m.invoke(device);
+            if (r instanceof byte[]) return (byte[]) r;
+            if (r instanceof ScanRecord) return ((ScanRecord) r).getBytes();
+        } catch (Throwable ignored) {
+        }
+        return null;
     }
 
     public interface connectScooterCallback {

@@ -72,13 +72,24 @@ public class Adapters {
             final TextView name = _view.findViewById(R.id.name);
             final TextView des = _view.findViewById(R.id.des);
 
-            linear1.setOnClickListener(v -> {
-                loading.setVisibility(View.VISIBLE);
-                linear1.setVisibility(View.GONE);
-                _callback.onClick(_data.get(_position), loading, linear1);
-            });
+            final Scooter scooter = _data.get(_position);
+            final boolean isBinded = scooter.getIsBinded();
 
-            name.setText(String.valueOf(_data.get(_position).getName()));
+            if (isBinded) {
+                linear1.setOnClickListener(null);
+                linear1.setAlpha(0.5f);
+                loading.setVisibility(View.GONE);
+                linear1.setVisibility(View.VISIBLE);
+                name.setText(String.valueOf(scooter.getName()).concat(" (Binded)"));
+            } else {
+                linear1.setAlpha(1.0f);
+                linear1.setOnClickListener(v -> {
+                    loading.setVisibility(View.VISIBLE);
+                    linear1.setVisibility(View.GONE);
+                    _callback.onClick(scooter, loading, linear1);
+                });
+                name.setText(String.valueOf(scooter.getName()));
+            }
             des.setText(_data.get(_position).getUUID());
 
             return _view;

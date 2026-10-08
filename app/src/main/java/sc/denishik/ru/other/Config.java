@@ -12,6 +12,7 @@ public class Config {
     public final static String SCOOTER_STATUS_CONNECTED = "scooter_connected";
     public final static String SCOOTER_STATUS_LOADING = "scooter_loading";
     public final static String SCOOTER_STATUS_ERROR = "scooter_error";
+    public final static String SCOOTER_STATUS_BINDED = "scooter_binded";
 
     public final static String SCOOTER_LED = "scooter_led";
     public final static String SCOOTER_LED_CONNECT = "scooter_led_connected";

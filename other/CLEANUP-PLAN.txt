@@ -1,0 +1,29 @@
+План очистки исходников — ожидает подтверждения
+
+Архив исходников уже сохранён: other/archive-2026-10-08/legacy-src.
+Рабочие исходники восстановлены после отклонения массового удаления автоматической проверкой.
+
+1. Убрать из сборки пять старых файлов app/src/main/java/sc/denishik/ru/kuggoApi:
+   Config.java, KugooBle.java, TuyaCrypto.java, Scooter.java, kugooApi.java.
+   Это экспериментальный обмен сырыми BLE-пакетами и старый облачный поиск/активация.
+   Связанные вызовы ещё есть в ServiceScooter, поэтому одних удалений недостаточно.
+2. В ServiceScooter удалить старую ветку KugooBle и методы startKugooSession,
+   broadcastKugooConnected, handleKugooBindCheckNotification, stopKugooSession,
+   связанные таймеры/счётчики/константы. Сохранить рабочие connectSavedKugoo,
+   KugooConnection, телеметрию, восстановление и переключение фонаря, а также Midway и LED.
+3. Убрать недостижимый ThingScooterAdapter из Modals и его layout item_thing_scooter.xml.
+   Он больше нигде не создаётся: окно Connect загружает KugooProfileStore.
+4. Убрать старые tuya/TuyaLoginActivity.java, ReflectionTuyaFacade.java, TuyaFacade.java,
+   pbbppqb.java и layout/activity_tuya_login.xml. Удалить регистрацию TuyaLoginActivity
+   из Manifest. В активном UI нет переходов в этот экран, остались его внутренние связи.
+5. Перенести пять рабочих классов из tuya в kuggoApi: KugooConnection,
+   KugooTelemetry, KugooProfileStore, KugooOfflineImport, KugooRootReader.
+   Обновить пакеты/импорты/тесты и имя helper в app_process. OfflineKeysActivity
+   оставить на прежнем пути; публично открыть только точки входа импортёра.
+6. Убрать неиспользуемые logKugooScanRecord/tryGetScanRecordBytes из ScootersApi
+   и other/other.iml из app/src, сохранив копии в архиве.
+
+После применения: assembleDebug, testDebugUnitTest, lintDebug; на телефоне —
+Connect, импорт сохранённых привязок, чтение DP, фонарь в обе стороны и переподключение.
+Не удалять app/libs, Gradle wrapper, локальные настройки SDK/ключей, .git,
+рабочие ресурсы Midway/LED, screenshots в screens и активный каталог сборки.

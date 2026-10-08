@@ -2,3 +2,16 @@
 /.gradle/
 /app/build/
 /app/build/intermediates/javac/debug/classes/
+/local.properties
+
+# Generated outputs and archived research
+/build/
+/other/archive-*/
+*.hprof
+
+# Local IDE state and reverse-engineering tools/exports
+/.idea/
+/other/export_kuggo/
+/other/_jadx_pairing/
+/other/_jadx_single/
+/other/_tools_jadx/

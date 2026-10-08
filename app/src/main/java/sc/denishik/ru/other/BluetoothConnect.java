@@ -52,6 +52,8 @@ public class BluetoothConnect {
 	}
 
 	public void activateBluetooth() {
+        if (android.os.Build.VERSION.SDK_INT >= 31 && activity.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) return;
+        if (bluetoothAdapter == null) return;
 		Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
 		activity.startActivity(intent);
 	}
@@ -150,6 +152,8 @@ public class BluetoothConnect {
 	}
 
 	public void getPairedDevices(ArrayList<HashMap<String, Object>> results) {
+        if (android.os.Build.VERSION.SDK_INT >= 31 && activity.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) return;
+        if (bluetoothAdapter == null) return;
 		if (!isBluetoothActivated()) {
 			activateBluetooth();
 		}
@@ -167,6 +171,8 @@ public class BluetoothConnect {
 	}
 
 	public void getPairedDevices2(ArrayList<BluetoothDevice> results) {
+        if (android.os.Build.VERSION.SDK_INT >= 31 && activity.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) return;
+        if (bluetoothAdapter == null) return;
 		Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
 		Log.d("BLU", "getPairedDevices2: size>".concat(String.valueOf(pairedDevices.size())));
 		if (pairedDevices.size() > 0) {
@@ -194,6 +200,10 @@ public class BluetoothConnect {
 	}
 
 	public void startConnection(BluetoothConnectionListener listener, String uuid, String address, String tag, byte[] pass) {
+        if (android.os.Build.VERSION.SDK_INT >= 31 && activity.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            listener.onConnectionError(tag, BluetoothController.STATE_NONE, "Bluetooth permission denied");
+            return;
+        }
 		BluetoothDevice device = bluetoothAdapter.getRemoteDevice(address);
 //		device.setPairingConfirmation(true);
 		device.setPin(pass);

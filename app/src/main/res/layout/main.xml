@@ -17,13 +17,13 @@
 			android:id="@+id/imageview1"
 			android:layout_width="100dp"
 			android:layout_height="100dp"
-			android:src="@drawable/author_logo"
+			app:tint="@color/app_text" android:src="@drawable/author_logo"
 			android:scaleType="centerInside" />
 		<ImageView
 			android:id="@+id/imageview2"
 			android:layout_width="100dp"
 			android:layout_height="100dp"
-			android:src="@drawable/app_icon"
+			app:tint="@color/app_text" android:src="@drawable/app_icon"
 			android:scaleType="center" />
 	</LinearLayout>
 	<LinearLayout
@@ -66,4 +66,5 @@
 		</androidx.cardview.widget.CardView>
 
 	</LinearLayout>
+
 </LinearLayout>

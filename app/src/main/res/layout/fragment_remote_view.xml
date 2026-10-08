@@ -76,6 +76,7 @@
             </androidx.cardview.widget.CardView>
         </LinearLayout>
         <LinearLayout
+            android:id="@+id/speed_controls"
             android:paddingLeft="10dp"
             android:paddingRight="10dp"
             android:layout_width="match_parent"
@@ -105,6 +106,7 @@
             />
         </LinearLayout>
         <LinearLayout
+            android:id="@+id/gear_controls"
             android:paddingLeft="10dp"
             android:paddingRight="10dp"
             android:layout_width="match_parent"

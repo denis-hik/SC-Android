@@ -1,7 +1,13 @@
 <resources>
-	<color name="colorPrimary">#E91E63</color>
-	<color name="colorPrimaryDark">#880E4F</color>
-	<color name="colorAccent">#C2185B</color>
-	<color name="colorControlHighlight">#F8BBD0</color>
-	<color name="colorControlNormal">#F06292</color>
+    <color name="colorPrimary">#602860</color>
+    <color name="colorPrimaryDark">#211224</color>
+    <color name="colorAccent">#D4A1DD</color>
+    <color name="colorControlHighlight">#486F3979</color>
+    <color name="colorControlNormal">#86448B</color>
+    <color name="app_background">#160F1B</color>
+    <color name="app_surface">#25192D</color>
+    <color name="app_card">#602860</color>
+    <color name="app_text">#F7EDF9</color>
+    <color name="app_text_secondary">#C7B4CE</color>
+    <color name="app_outline">#513859</color>
 </resources>

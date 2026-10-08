@@ -1,5 +1,8 @@
 package sc.denishik.ru;
 
+import android.Manifest;
+import androidx.core.content.ContextCompat;
+
 import static sc.denishik.ru.other.Config.SCOOTER_ERROR_CONNECT;
 import static sc.denishik.ru.other.Config.SCOOTER_GET_DATA_NAME_COMMAND;
 import static sc.denishik.ru.other.Config.SCOOTER_GET_DATA_PARAMS_COMMAND;
@@ -7,19 +10,12 @@ import static sc.denishik.ru.other.Config.SCOOTER_LED;
 import static sc.denishik.ru.other.Config.SCOOTER_LED_CONNECT;
 import static sc.denishik.ru.other.Config.SCOOTER_LED_DISCONNECT;
 
-import android.Manifest;
-import android.animation.Animator;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
 import android.os.Bundle;
-import android.util.Log;
 import android.util.SparseBooleanArray;
 import android.util.TypedValue;
 import android.view.View;
@@ -33,27 +29,13 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
-import com.yandex.mapkit.Animation;
 import com.yandex.mapkit.MapKitFactory;
-import com.yandex.mapkit.geometry.Point;
-import com.yandex.mapkit.location.FilteringMode;
-import com.yandex.mapkit.location.Location;
-import com.yandex.mapkit.location.LocationListener;
-import com.yandex.mapkit.location.LocationManager;
-import com.yandex.mapkit.location.LocationStatus;
-import com.yandex.mapkit.map.CameraPosition;
-import com.yandex.mapkit.map.Map;
-import com.yandex.mapkit.map.MapObjectCollection;
-import com.yandex.mapkit.map.PlacemarkMapObject;
 import com.yandex.mapkit.mapview.MapView;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Random;
 
 import sc.denishik.ru.midwayApi.Scooter;
@@ -63,8 +45,105 @@ import sc.denishik.ru.other.CustomViewPager;
 
 public class HomeActivity extends AppCompatActivity {
 
-	private static final int ACCESS_FINE_LOCATION = 1;
-	private static final String TAG = "HomeActivity";
+
+
+    private sc.denishik.ru.mapsApi.MapsController maps;
+    private final sc.denishik.ru.mapsApi.RideMode rideMode = new sc.denishik.ru.mapsApi.RideMode();
+    private final android.os.Handler rideHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private boolean riding, speedometerMode;
+    private boolean mapEnabled = true;
+    private boolean telemetryOnline;
+    private String gaugeGear = "—";
+    private double gaugeVoltage = Double.NaN, gaugeBattery = Double.NaN;
+    private sc.denishik.ru.pages.SpeedometerView gauge;
+    private sc.denishik.ru.recordingApi.ScreenRecordingController screenRecording;
+    public void showSpeedometer(boolean enabled) {
+        if (speedometerMode == enabled) return;
+        if (!enabled && screenRecording != null) screenRecording.stop();
+        speedometerMode = enabled;
+        View overlay = findViewById(R.id.speedometer_overlay);
+        overlay.setVisibility(enabled ? View.VISIBLE : View.GONE);
+        // ViewDragHelper checks sibling bounds, including a previously laid-out
+        // GONE overlay. The sheet must be the top child again to receive drags.
+        if (enabled) overlay.bringToFront();
+        else linear2.bringToFront();
+        // Keep the sheet in CoordinatorLayout's layout pass so its measured height
+        // and BottomSheetBehavior offsets remain valid while the gauge is open.
+        linear2.setVisibility(enabled ? View.INVISIBLE : View.VISIBLE);
+        behavior.setDraggable(!enabled);
+        findViewById(R.id.map_status).setVisibility(enabled ? View.GONE : View.VISIBLE);
+        findViewById(R.id.locate_me).setVisibility(enabled || !mapEnabled ? View.GONE : View.VISIBLE);
+        error_block.setVisibility(enabled || telemetryOnline ? View.GONE : View.VISIBLE);
+        save_scale_type.setVisibility(!enabled && riding ? View.VISIBLE : View.GONE);
+        maps.speedometer(enabled);
+        if (enabled || riding) getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        else getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        if (!enabled) {
+            linear2.requestLayout();
+            linear2.post(() -> {
+                if (!speedometerMode && !isFinishing() && !isDestroyed()) {
+                    behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+                }
+            });
+        }
+        updateGauge();
+    }
+    private void updateGauge() {
+        if (gauge != null) gauge.update(lastSpeed, gaugeGear, gaugeVoltage, gaugeBattery, telemetryOnline && lastTelemetryAt > 0
+                && android.os.SystemClock.elapsedRealtime() - lastTelemetryAt <= 15000);
+    }
+    @Override public void onBackPressed() {
+        if (speedometerMode) showSpeedometer(false); else super.onBackPressed();
+    }
+    private double lastSpeed;
+    private long lastTelemetryAt;
+    private final Runnable rideTick = new Runnable() {
+        public void run() {
+            if (android.os.SystemClock.elapsedRealtime() - lastTelemetryAt > 15000) {
+                rideMode.reset(); setRideMode(false); speed.setText("—");
+            } else setRideMode(rideMode.update(lastSpeed, android.os.SystemClock.elapsedRealtime()));
+            updateGauge();
+            rideHandler.postDelayed(this, 1000);
+        }
+    };
+    public void setMapEnabled(boolean enabled) {
+        mapEnabled = enabled;
+        route_block.setVisibility(enabled && !riding && behavior.getState() != BottomSheetBehavior.STATE_EXPANDED
+                ? View.VISIBLE : View.GONE);
+        behavior.setPeekHeight((int) getDip(enabled && !riding ? 126 : 76));
+        findViewById(R.id.locate_me).setVisibility(enabled && !speedometerMode ? View.VISIBLE : View.GONE);
+    }
+    public String mapProvider() { return maps == null ? "yandex" : maps.provider(); }
+    public void selectMap(String provider) { if (maps != null) maps.selectProvider(provider); }
+    public sc.denishik.ru.mapsApi.TravelMode travelMode() { return maps == null ? sc.denishik.ru.mapsApi.TravelMode.SCOOTER : maps.travelMode(); }
+    public void selectTravelMode(sc.denishik.ru.mapsApi.TravelMode mode) { if (maps != null) maps.travelMode(mode); }
+    public void selectLocationIcon(String name) { if (maps != null) maps.locationIcon(name); }
+    public void importLocationIcon(android.net.Uri uri) { if (maps != null) maps.importLocationIcon(uri); }
+    public void disconnectScooter() {
+        sc.denishik.ru.tuya.KugooProfileStore.rememberDevice(this, "");
+        getSharedPreferences("login", MODE_PRIVATE).edit().remove("address").apply();
+        stopService(new Intent(this, ServiceScooter.class));
+        startActivity(new Intent(this, MainActivity.class).putExtra("manual_disconnect", true)
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK));
+        finish();
+    }
+    public void collapseForMap() {
+        if (!speedometerMode) behavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+    }
+    private void setRideMode(boolean value) {
+        if (riding == value) return;
+        riding = value;
+        maps.ride(value);
+        save_scale_type.setVisibility(value && !speedometerMode ? View.VISIBLE : View.GONE);
+        route_block.setVisibility(value || !mapEnabled ? View.GONE : View.VISIBLE);
+        behavior.setPeekHeight((int) getDip(value || !mapEnabled ? 76 : 126), true);
+        if (value) {
+            viewPager.setCurrentItem(0);
+            collapseForMap();
+            getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        } else if (!speedometerMode) getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    }
+
 	private CoordinatorLayout linear1;
 	private Scooter scooter;
 	private MapView mapview1;
@@ -72,27 +151,26 @@ public class HomeActivity extends AppCompatActivity {
 	private LinearLayout linear13;
 	private LinearLayout route_block;
 	private TextView textview1;
-	private ImageView image;
+    private ImageView image;
+    private Boolean imageForKugoo;
+    private void updateScooterImage(boolean kugoo) {
+        if (imageForKugoo != null && imageForKugoo == kugoo) return;
+        imageForKugoo = kugoo;
+        image.setImageResource(kugoo ? R.drawable.kugoo_scooter : R.drawable.scooter1);
+        image.setScaleX(kugoo ? 1f : -1.5f);
+        image.setScaleY(kugoo ? 1f : 1.5f);
+        image.setTranslationX(kugoo ? 0 : getDip(100));
+    }
 	private CustomViewPager viewPager;
 	private CardView save_scale_type;
 	private LinearLayout linear4;
 	private LinearLayout linear16;
 	private BroadcastReceiver mMessageReceiver;
-	private LocationManager gps;
-	private LocationListener gps_listener;
-	private Point gps_pos;
 	private CardView error_block;
 	private TextView speed;
 	private CardView home;
-	private float azimut;
-	private SensorEventListener mySensorEventListener;
-	private SensorManager mySensorManager;
-	private List<Sensor> mySensors;
 	private CardView garden;
-	private boolean isMoved = false;
 	private BottomSheetBehavior behavior;
-	private Animator.AnimatorListener animationHide;
-	private boolean isHide = false;
 	private Adapters.ViewsAdapter adapterView = new Adapters.ViewsAdapter(getSupportFragmentManager(), this, this);
 
 	@Override
@@ -121,31 +199,15 @@ public class HomeActivity extends AppCompatActivity {
 		garden = findViewById(R.id.garden);
 		home = findViewById(R.id.home);
 		route_block = findViewById(R.id.route_block);
-		behavior = BottomSheetBehavior.from(linear2);
+        updateScooterImage(!sc.denishik.ru.tuya.KugooProfileStore.lastDeviceId(this).isEmpty());
+        gauge = findViewById(R.id.speedometer_gauge);
+        screenRecording = new sc.denishik.ru.recordingApi.ScreenRecordingController(this,
+                recording -> gauge.setRecording(recording, maps));
+        findViewById(R.id.close_speedometer).setOnClickListener(v -> showSpeedometer(false));
+        behavior = BottomSheetBehavior.from(linear2);
 	}
 
 	private void initializeLogic() {
-		animationHide = new Animator.AnimatorListener() {
-			@Override
-			public void onAnimationStart(Animator animation) {
-				route_block.setAlpha(0.0f);
-			}
-
-			@Override
-			public void onAnimationEnd(Animator animation) {
-				route_block.setVisibility(View.GONE);
-			}
-
-			@Override
-			public void onAnimationCancel(Animator animation) {
-
-			}
-
-			@Override
-			public void onAnimationRepeat(Animator animation) {
-
-			}
-		};
 		scooter = new Scooter("", "", "", "");
 		viewPager.setPagingEnabled(false);
 		mMessageReceiver = new BroadcastReceiver() {
@@ -159,29 +221,30 @@ public class HomeActivity extends AppCompatActivity {
 						break;
 
 					case SCOOTER_ERROR_CONNECT:
-						error_block.setVisibility(View.VISIBLE);
+						telemetryOnline = intent.getBooleanExtra("Status", false);
+                        error_block.setVisibility(telemetryOnline || speedometerMode ? View.GONE : View.VISIBLE);
+                        updateGauge();
 						break;
 					case SCOOTER_GET_DATA_PARAMS_COMMAND:
 						HashMap<String, Object> temp = (HashMap<String, Object>) intent.getSerializableExtra("data");
 						if (temp != null) {
 							BaseParams params = new BaseParams(temp);
-							if (params.getSpeed() > 5.0) {
-								speed.setText(String.valueOf(params.getSpeed()));
-								save_scale_type.setVisibility(View.VISIBLE);
-								viewPager.setCurrentItem(1);
-								route_block.animate().alpha(0.0f).setDuration(1).setListener(animationHide).start();
-								behavior.setPeekHeight((int) getDip(230), true);
-								isHide = false;
-							} else {
-								if (!isHide) {
-									isHide = true;
-									route_block.setVisibility(View.VISIBLE);
-									route_block.setAlpha(1.0f);
-									save_scale_type.setVisibility(View.GONE);
-									behavior.setPeekHeight((int) getDip(110), true);
-								}
-
-							}
+                            lastSpeed = params.getSpeed();
+                            lastTelemetryAt = intent.getLongExtra("telemetry_at", android.os.SystemClock.elapsedRealtime());
+                            telemetryOnline = intent.getBooleanExtra("telemetry_online", true);
+                            gaugeBattery = intent.getDoubleExtra("battery_percentage", Double.NaN);
+                            updateScooterImage("kugoo".equals(intent.getStringExtra("source")));
+                            if ("kugoo".equals(intent.getStringExtra("source"))) {
+                                gaugeGear = sc.denishik.ru.mapsApi.SpeedometerData.gear(intent.getStringExtra("kugoo_level") == null ? "" : intent.getStringExtra("kugoo_level"));
+                                gaugeVoltage = intent.getDoubleExtra("voltage", Double.NaN);
+                            } else {
+                                Object power = temp.get("power");
+                                gaugeVoltage = power instanceof Number && ((Number)power).doubleValue() > 0 ? ((Number)power).doubleValue() : Double.NaN;
+                                gaugeGear = params.getLockSw() ? "P" : String.valueOf(temp.get("gearPosition"));
+                            }
+                            updateGauge();
+                            speed.setText(String.format(java.util.Locale.getDefault(), "%.0f", lastSpeed));
+                            setRideMode(rideMode.update(lastSpeed, lastTelemetryAt));
 						}
 						break;
 					case SCOOTER_LED_CONNECT:
@@ -196,27 +259,6 @@ public class HomeActivity extends AppCompatActivity {
 				}
 			}
 		};
-		mySensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
-		mySensors = mySensorManager.getSensorList(Sensor.TYPE_ORIENTATION);
-		mySensorEventListener = new SensorEventListener() {
-			@Override
-			public void onSensorChanged(SensorEvent event) {
-				if ((int) azimut != (int) event.values[0]) {
-					mapview1.getMap().move(
-							new CameraPosition(gps_pos, 17.0f, event.values[0], 0.0f),
-							new Animation(Animation.Type.SMOOTH, 2),
-							null);
-				}
-				azimut = event.values[0];
-			}
-
-			@Override
-			public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
-			}
-		};
-
-
 		viewPager.setAdapter(adapterView);
 		IntentFilter filter = new IntentFilter();
 		filter.addAction(SCOOTER_GET_DATA_NAME_COMMAND);
@@ -225,125 +267,37 @@ public class HomeActivity extends AppCompatActivity {
 		filter.addAction(SCOOTER_LED);
 		registerReceiver(mMessageReceiver, filter);
 
-		gps_pos = new Point(59.945933, 30.320045);
-		Point home_pos = new Point(55.730887, 37.459038);
-		Point garden_pos = new Point(55.738636, 37.464624);
-		if (getSharedPreferences("file", MODE_PRIVATE).getString("isLoc", "0").equals("1")) {
-			mapview1.getMap().move(
-					new CameraPosition(gps_pos, 17.0f, 0.0f, 0.0f),
-					new Animation(Animation.Type.SMOOTH, 3),
-					b -> {
-						mapview1.setVisibility(View.VISIBLE);
-						image.setVisibility(View.GONE);
-					});
-			mapview1.getMap().setFastTapEnabled(false);
-			mapview1.setClickable(false);
-			mapview1.setNoninteractive(true);
-		}
+        maps = new sc.denishik.ru.mapsApi.MapsController(this);
+        behavior.setPeekHeight((int) getDip(mapEnabled ? 126 : 76));
+        behavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
+            public void onStateChanged(@NonNull View sheet, int state) { }
+            public void onSlide(@NonNull View sheet, float offset) {
+                route_block.setVisibility(!mapEnabled || riding || offset > 0.6f ? View.GONE : View.VISIBLE);
+                route_block.setAlpha(Math.max(0, 1 - Math.max(0, offset) / 0.6f));
+            }
+        });
+    }
+    @Override public void onRequestPermissionsResult(int code, @NonNull String[] permissions, @NonNull int[] results) {
+        super.onRequestPermissionsResult(code, permissions, results);
+        if (code == sc.denishik.ru.mapsApi.MapsController.LOCATION_REQUEST
+                && (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                || ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED)) maps.requestLocation();
+    }
 
-		MapObjectCollection mapObjects = mapview1.getMap().getMapObjects().addCollection();
-		PlacemarkMapObject mark = mapObjects.addPlacemark(gps_pos);
-
-		gps = MapKitFactory.getInstance().createLocationManager();
-		gps_listener = new LocationListener() {
-			@Override
-			public void onLocationUpdated(@NonNull Location location) {
-				onSpeed(location, mark);
-			}
-
-			@Override
-			public void onLocationStatusUpdated(@NonNull LocationStatus locationStatus) {
-
-			}
-		};
-		garden.setOnClickListener(v -> {
-
-		});
-		home.setOnClickListener(v -> {
-
-		});
-		behavior.addBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
-			@Override
-			public void onStateChanged(@NonNull View bottomSheet, int newState) {
-
-			}
-
-			@Override
-			public void onSlide(@NonNull View bottomSheet, float slideOffset) {
-				Log.d(TAG, String.valueOf(slideOffset));
-				if (slideOffset > 0.6) {
-					route_block.setVisibility(View.GONE);
-				} else {
-					route_block.setAlpha(1);
-					route_block.setVisibility(View.VISIBLE);
-				}
-				if (slideOffset > 0.2 && slideOffset < 0.6) {
-					double i = slideOffset - 0.2;
-					route_block.setAlpha((float) i);
-				}
-			}
-		});
-		if (getSharedPreferences("file", MODE_PRIVATE).getString("isLoc", "0").equals("1")) {
-			if (ContextCompat.checkSelfPermission(HomeActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-				Log.d(TAG, "initializeLogic:>  requestLocationUpdates = true");
-				gps.subscribeForLocationUpdates(0,0, 60, false, FilteringMode.OFF, gps_listener);
-			} else {
-				Log.e(TAG, "initializeLogic:>  requestLocationUpdates = false");
-				ActivityCompat.requestPermissions(
-						this,
-						new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-						ACCESS_FINE_LOCATION
-				);
-			}
-		}
-	}
-
-	@Override
-	public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-		if (requestCode == ACCESS_FINE_LOCATION) {
-			if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-					!= PackageManager.PERMISSION_GRANTED) {
-				ActivityCompat.requestPermissions(
-						this,
-						new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-						ACCESS_FINE_LOCATION
-				);
-			} else {
-				gps.subscribeForLocationUpdates(0,0, 60, false, FilteringMode.OFF, gps_listener);
-			}
-		}
-	}
-
-	public void onSpeed(Location location, PlacemarkMapObject mark) {
-		Log.d("onLocationChanged", String.valueOf(location.getPosition()));
-		gps_pos = location.getPosition();
-		mapview1.getMap().move(
-				new CameraPosition(gps_pos, 17.0f, azimut, 0.0f),
-				new Animation(Animation.Type.SMOOTH, 5),
-				new Map.CameraCallback() {
-					@Override
-					public void onMoveFinished(boolean b) {
-						if(mySensors.size() > 0 && b) {
-							mySensorManager.registerListener(mySensorEventListener, mySensors.get(0), SensorManager.SENSOR_DELAY_NORMAL);
-						}
-					}
-				});isMoved = true;
-		mark.setGeometry(gps_pos);
-
-	}
-	
 	@Override
 	public void onDestroy() {
+		if (screenRecording != null) screenRecording.destroy();
 		super.onDestroy();
-		unregisterReceiver(mMessageReceiver);
-		gps.unsubscribe(gps_listener);
+		try { unregisterReceiver(mMessageReceiver); } catch (IllegalArgumentException ignored) { }
+		if (maps != null) maps.destroy();
 	}
 	
 	@Override
 	public void onStart() {
 		super.onStart();
 		MapKitFactory.getInstance().onStart();
-		mapview1.onStart();
+		maps.start();
+        rideHandler.post(rideTick);
 	}
 	
 	@Override
@@ -355,12 +309,12 @@ public class HomeActivity extends AppCompatActivity {
 	public void onResume() {
 		super.onResume();
 		try {
-			unregisterReceiver(mMessageReceiver);
+			try { unregisterReceiver(mMessageReceiver); } catch (IllegalArgumentException ignored) { }
 		} catch (Exception e) {
 
 		}
 		try {
-			mySensorManager.unregisterListener(mySensorEventListener);
+
 		} catch (Exception e) {
 
 		}
@@ -370,19 +324,27 @@ public class HomeActivity extends AppCompatActivity {
 		filter.addAction(SCOOTER_GET_DATA_PARAMS_COMMAND);
 		filter.addAction(SCOOTER_LED);
 		registerReceiver(mMessageReceiver, filter);
-		List<Sensor> mySensors = mySensorManager.getSensorList(Sensor.TYPE_ORIENTATION);
-//		mySensorManager.registerListener(mySensorEventListener, mySensors.get(0), SensorManager.SENSOR_DELAY_NORMAL);
+        Intent snapshot = new Intent(this, ServiceScooter.class);
+        snapshot.putExtra("command", SCOOTER_GET_DATA_NAME_COMMAND);
+        startService(snapshot);
 	}
 	
 	@Override
 	public void onStop() {
-		mapview1.onStop();
-		unregisterReceiver(mMessageReceiver);
-		gps.unsubscribe(gps_listener);
-		mySensorManager.unregisterListener(mySensorEventListener);
+        if (screenRecording != null) screenRecording.stop();
+		rideHandler.removeCallbacks(rideTick);
+        maps.stop();
+		try { unregisterReceiver(mMessageReceiver); } catch (IllegalArgumentException ignored) { }
+
+
 		MapKitFactory.getInstance().onStop();
 		super.onStop();
 	}
+
+    @Override protected void onActivityResult(int request, int result, Intent data) {
+        super.onActivityResult(request, result, data);
+        if (screenRecording != null) screenRecording.onResult(request, result, data);
+    }
 	
 	@Deprecated
 	public void showMessage(String _s) {
@@ -414,8 +376,9 @@ public class HomeActivity extends AppCompatActivity {
 		ArrayList<Double> _result = new ArrayList<Double>();
 		SparseBooleanArray _arr = _list.getCheckedItemPositions();
 		for (int _iIdx = 0; _iIdx < _arr.size(); _iIdx++) {
-			if (_arr.valueAt(_iIdx))
-			_result.add((double)_arr.keyAt(_iIdx));
+			if (_arr.valueAt(_iIdx)) {
+                _result.add((double)_arr.keyAt(_iIdx));
+            }
 		}
 		return _result;
 	}

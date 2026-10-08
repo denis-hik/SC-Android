@@ -47,12 +47,15 @@ public class InfoView extends Fragment {
         mMessageReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
+                if (data == null) return;
+                String kugoo = intent.getStringExtra("kugoo_data");
+                if (kugoo != null) { data.setText(kugoo); return; }
                 Log.d("onRec", String.valueOf(intent.getAction()));
                 HashMap<String, Object> temp = (HashMap<String, Object>) intent.getSerializableExtra("data");
                 if (temp != null) {
                     boolean isReDraw = false;
                     if (params != null) {
-                        isReDraw = params.equals(new BaseParams(temp));
+                        isReDraw = !params.equals(new BaseParams(temp));
                     } else {
                         isReDraw = true;
                     }
@@ -90,6 +93,9 @@ public class InfoView extends Fragment {
             try {
 
                 activity.registerReceiver(mMessageReceiver, new IntentFilter(SCOOTER_GET_DATA_PARAMS_COMMAND));
+                Intent snapshot = new Intent(activity, sc.denishik.ru.ServiceScooter.class);
+                snapshot.putExtra("command", sc.denishik.ru.other.Config.SCOOTER_GET_DATA_NAME_COMMAND);
+                activity.startService(snapshot);
             } catch (Exception e) {
 
             }

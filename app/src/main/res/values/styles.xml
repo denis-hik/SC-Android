@@ -1,6 +1,16 @@
 <resources>
-	<style name="AppTheme" parent="Theme.MaterialComponents.Light.NoActionBar.Bridge">
-		<item name="colorPrimary">@color/colorPrimary</item>
+	<style name="AppTheme" parent="Theme.MaterialComponents.NoActionBar.Bridge">
+		<item name="android:windowBackground">@color/app_background</item>
+        <item name="android:colorBackground">@color/app_background</item>
+        <item name="colorSurface">@color/app_surface</item>
+        <item name="colorOnSurface">@color/app_text</item>
+        <item name="colorOnPrimary">@color/app_text</item>
+        <item name="android:textColorPrimary">@color/app_text</item>
+        <item name="android:textColorSecondary">@color/app_text_secondary</item>
+        <item name="android:statusBarColor">@color/app_background</item>
+        <item name="android:navigationBarColor">@color/app_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="colorPrimary">@color/colorPrimary</item>
 		<item name="colorPrimaryDark">@color/colorPrimaryDark</item>
 		<item name="colorAccent">@color/colorAccent</item>
 		<item name="colorControlHighlight">@color/colorControlHighlight</item>

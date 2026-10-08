@@ -48,7 +48,6 @@ public class MainActivity extends AppCompatActivity {
 
 	@Override
 	protected void onCreate(Bundle _savedInstanceState) {
-		MapKitFactory.setApiKey("d9c967a8-e55c-47ff-8d95-19924290e00b");
 		super.onCreate(_savedInstanceState);
 		setContentView(R.layout.main);
 		initialize(_savedInstanceState);
@@ -187,8 +186,29 @@ public class MainActivity extends AppCompatActivity {
 		imageview2 = findViewById(R.id.imageview2);
 	}
 
+	private boolean restoringConnection;
 	private void initializeLogic() {
-		if (isServiceRunning(ServiceScooter.class, getApplicationContext())) {
+        if (restoringConnection) return;
+        restoringConnection = true;
+        new Thread(() -> {
+            String restoredId = "";
+            try { restoredId = sc.denishik.ru.tuya.KugooProfileStore.restoreDeviceId(getApplicationContext()); }
+            catch (Exception ignored) { }
+            final boolean hasSavedConnection = !restoredId.isEmpty();
+            runOnUiThread(() -> {
+                restoringConnection = false;
+                if (isFinishing() || isDestroyed()) return;
+                openStartScreen(hasSavedConnection);
+            });
+        }, "restore-kugoo").start();
+    }
+
+    private void openStartScreen(boolean hasSavedConnection) {
+        if (getIntent().getBooleanExtra("manual_disconnect", false)) { _showConnect(); return; }
+		if (hasSavedConnection || isServiceRunning(ServiceScooter.class, getApplicationContext())) {
+            Intent restore = new Intent(this, ServiceScooter.class);
+            restore.putExtra("command", sc.denishik.ru.other.Config.SCOOTER_GET_DATA_NAME_COMMAND);
+            startService(restore);
 
 			Intent i = new Intent();
 			i.setAction(Intent.ACTION_VIEW);

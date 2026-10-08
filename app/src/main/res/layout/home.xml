@@ -19,6 +19,13 @@
 				android:layout_height="match_parent"
 				android:visibility="invisible"
 				yandex:movable="true" />
+            <WebView android:id="@+id/dgis_map" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="70dp" android:layout_marginHorizontal="12dp" android:orientation="vertical" android:background="@drawable/sheet_background" android:padding="8dp">
+                <TextView android:id="@+id/map_status" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="" android:textColor="@color/app_text" android:textSize="14sp" android:accessibilityLiveRegion="polite" />
+                <Button android:id="@+id/clear_route" android:layout_width="wrap_content" android:layout_height="48dp" android:text="Завершить маршрут" android:visibility="gone" />
+                <Button android:id="@+id/open_dgis_browser" android:layout_width="wrap_content" android:layout_height="48dp" android:text="Открыть 2ГИС в браузере" android:visibility="gone" />
+            </LinearLayout>
+            <ImageButton android:id="@+id/locate_me" android:layout_width="48dp" android:layout_height="48dp" android:layout_alignParentEnd="true" android:layout_centerVertical="true" android:layout_marginEnd="12dp" android:src="@android:drawable/ic_menu_mylocation" android:background="@drawable/sheet_background" android:contentDescription="Моё местоположение" />
 			<androidx.cardview.widget.CardView
 				android:id="@+id/save_scale_type"
 				android:visibility="gone"
@@ -38,7 +45,7 @@
 						android:id="@+id/speed"
 						android:layout_width="match_parent"
 						android:layout_height="match_parent"
-						android:text="24"
+						android:text="0"
 						android:textSize="29dp"
 						android:gravity="center"
 						android:textColor="#fff"
@@ -81,11 +88,11 @@
 			android:gravity="center_horizontal"
 			android:orientation="vertical"
 			app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
-			app:behavior_peekHeight="110dp">
+			app:behavior_peekHeight="126dp">
 			<LinearLayout
 				android:id="@+id/route_block"
 				android:layout_width="match_parent"
-				android:layout_height="40dp"
+				android:layout_height="56dp"
 				android:orientation="horizontal">
 				<androidx.cardview.widget.CardView
 					android:id="@+id/home"
@@ -95,13 +102,13 @@
 					android:layout_marginLeft="5dp"
 					android:layout_marginBottom="5dp"
 					app:cardCornerRadius="20dp"
-					app:cardBackgroundColor="@color/colorControlHighlight"
+					app:cardBackgroundColor="@color/colorControlNormal"
 				>
 					<LinearLayout
 						android:layout_width="match_parent"
 						android:layout_height="match_parent">
 						<ImageView
-							android:tint="#fff"
+							app:tint="#fff"
 							android:layout_width="35dp"
 							android:layout_height="match_parent"
 							android:padding="5dp"
@@ -111,9 +118,10 @@
 							android:layout_width="match_parent"
 							android:layout_height="match_parent"
 							android:gravity="center"
-							android:text="Home"
+							android:id="@+id/home_label"
+                            android:maxLines="1" android:ellipsize="end" android:text="Дом"
 							android:layout_marginRight="5dp"
-							android:textSize="20dp"
+							android:textSize="17sp"
 							android:textColor="#fff"
 						/>
 					</LinearLayout>
@@ -126,13 +134,13 @@
 					android:layout_marginLeft="5dp"
 					android:layout_marginBottom="5dp"
 					app:cardCornerRadius="20dp"
-					app:cardBackgroundColor="@color/colorControlHighlight"
+					app:cardBackgroundColor="@color/colorControlNormal"
 				>
 					<LinearLayout
 						android:layout_width="match_parent"
 						android:layout_height="match_parent">
 						<ImageView
-							android:tint="#fff"
+							app:tint="#fff"
 							android:layout_width="35dp"
 							android:layout_height="match_parent"
 							android:padding="5dp"
@@ -142,13 +150,16 @@
 							android:layout_width="match_parent"
 							android:layout_height="match_parent"
 							android:gravity="center"
-							android:text="Garden"
+							android:id="@+id/garden_label"
+                            android:maxLines="1" android:ellipsize="end" android:text="Дача"
 							android:layout_marginRight="5dp"
-							android:textSize="20dp"
+							android:textSize="17sp"
 							android:textColor="#fff"
 						/>
 					</LinearLayout>
-				</androidx.cardview.widget.CardView>
+				</androidx.cardview.widget.CardView>                <ImageButton android:id="@+id/edit_places" android:layout_width="48dp" android:layout_height="48dp" android:layout_marginStart="8dp" android:src="@drawable/ic_edit_place" android:background="@drawable/sheet_background" android:padding="12dp" android:contentDescription="Редактировать места" />
+                <ImageButton android:id="@+id/search_route" android:layout_width="48dp" android:layout_height="48dp" android:layout_marginStart="8dp" android:src="@drawable/ic_search_route" android:background="@drawable/sheet_background" android:padding="12dp" android:contentDescription="Найти адрес для временного маршрута" />
+
 			</LinearLayout>
 			<LinearLayout
 				android:gravity="center"
@@ -168,7 +179,7 @@
 						android:layout_width="match_parent"
 						android:layout_height="match_parent"
 						android:padding="8dp"
-						android:background="#000000"
+						android:background="@color/app_outline"
 						android:orientation="horizontal" />
 				</androidx.cardview.widget.CardView>
 
@@ -181,13 +192,13 @@
 					android:text="Midway i pro"
 					android:textSize="20sp"
 					android:textStyle="bold"
-					android:textColor="#000000" />
+					android:textColor="@color/app_text" />
 				<LinearLayout
 					android:id="@+id/linear4"
 					android:layout_width="match_parent"
 					android:layout_height="1dp"
 					android:padding="8dp"
-					android:background="#000000"
+					android:background="@color/app_outline"
 					android:orientation="horizontal" />
 				<LinearLayout
 					android:id="@+id/linear16"
@@ -203,5 +214,10 @@
 			</LinearLayout>
 
 		</LinearLayout>
+        <FrameLayout android:id="@+id/speedometer_overlay" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone">
+            <sc.denishik.ru.pages.SpeedometerView android:id="@+id/speedometer_gauge" android:layout_width="match_parent" android:layout_height="match_parent" />
+            <ImageButton android:id="@+id/record_speedometer" android:layout_width="48dp" android:layout_height="48dp" android:layout_gravity="top|end" android:layout_margin="16dp" android:padding="12dp" android:src="@drawable/ic_record" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="Записать экран для видео" />
+            <ImageButton android:id="@+id/close_speedometer" android:layout_width="48dp" android:layout_height="48dp" android:layout_gravity="top|start" android:layout_margin="16dp" android:padding="12dp" android:scaleType="fitCenter" android:src="@drawable/back" android:tint="#FFFFFF" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="Назад" />
+        </FrameLayout>
 	</androidx.coordinatorlayout.widget.CoordinatorLayout>
 </LinearLayout>

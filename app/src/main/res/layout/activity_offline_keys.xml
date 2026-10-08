@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@color/app_background">
+    <com.google.android.material.appbar.MaterialToolbar android:id="@+id/offline_toolbar" android:layout_width="match_parent" android:layout_height="?attr/actionBarSize" app:title="@string/offline_title" app:titleTextColor="@color/app_text" app:navigationIcon="@drawable/abc_ic_ab_back_material" app:navigationIconTint="@color/app_text" app:navigationContentDescription="@string/offline_back"/>
+    <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:fillViewport="true" android:clipToPadding="false">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
+            <TextView style="@style/OfflineBody" android:text="@string/offline_intro" android:layout_marginBottom="20dp"/>
+            <RelativeLayout android:id="@+id/offline_scooter_panel" android:visibility="gone" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="16dp" android:background="@drawable/bg_offline_panel" android:clipToOutline="true">
+                <ImageView android:id="@+id/offline_scooter_background" android:layout_width="match_parent" android:layout_height="0dp" android:src="@drawable/kugoo_scooter" android:scaleType="fitEnd" android:alpha="0.35" android:visibility="gone" android:importantForAccessibility="no" android:clickable="false" android:focusable="false" android:layout_alignTop="@id/offline_scooter_content" android:layout_alignBottom="@id/offline_scooter_content"/>
+                <LinearLayout style="@style/OfflinePanel" android:background="@android:color/transparent" android:layout_marginBottom="0dp" android:id="@+id/offline_scooter_content">
+                    <TextView style="@style/OfflineTitle" android:text="@string/offline_scooter"/>
+                    <TextView style="@style/OfflineTitle" android:text="@string/offline_empty" android:id="@+id/kugoo_profile" android:layout_marginTop="16dp"/>
+                    <TextView style="@style/OfflineBody" android:text="@string/offline_empty_hint" android:id="@+id/offline_profile_hint"/>
+                    <TextView style="@style/OfflineBody" android:text="@string/offline_idle" android:id="@+id/offline_connection_state" android:textStyle="bold" android:accessibilityLiveRegion="polite"/>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/connect_kugoo_offline" style="@style/OfflineButton" android:text="@string/offline_connect"/>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/disconnect_kugoo_offline" style="@style/OfflineSecondary" android:text="@string/offline_disconnect"/>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/offline_choose_profile" style="@style/OfflineSecondary" android:text="@string/offline_choose"/>
+                </LinearLayout>
+            </RelativeLayout>
+            <TextView style="@style/OfflineBody" android:text="@string/offline_data_empty" android:id="@+id/offline_status" android:accessibilityLiveRegion="polite"/>
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/bg_offline_panel"
+                android:clipChildren="true"
+                android:clipToOutline="true">
+                <ImageView
+                    android:id="@+id/offline_add_background"
+                    android:layout_width="220dp"
+                    android:layout_height="0dp"
+                    android:layout_alignParentRight="true"
+                    android:layout_alignTop="@id/offline_add_content"
+                    android:layout_alignBottom="@id/offline_add_content"
+                    android:translationX="66dp"
+                    android:src="@drawable/kugoo_logo"
+                    android:scaleType="fitCenter"
+                    android:alpha="0.2"
+                    android:importantForAccessibility="no"
+                    android:clickable="false"
+                    android:focusable="false"/>
+                <LinearLayout
+                    android:id="@+id/offline_add_content"
+                    style="@style/OfflinePanel"
+                    android:background="@android:color/transparent"
+                    android:layout_marginBottom="0dp">
+                    <TextView style="@style/OfflineTitle" android:text="@string/offline_add"/>
+                    <TextView style="@style/OfflineBody" android:text="@string/offline_add_hint"/>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/go" style="@style/OfflineButton" android:text="@string/offline_root"/>
+                    <TextView style="@style/OfflineBody" android:text="@string/offline_root_hint"/>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/import_kugoo_file" style="@style/OfflineSecondary" android:text="@string/offline_file"/>
+                    <TextView style="@style/OfflineBody" android:text="@string/offline_file_hint"/>
+                </LinearLayout>
+            </RelativeLayout>
+            <LinearLayout style="@style/OfflinePanel">
+                <TextView style="@style/OfflineTitle" android:text="@string/offline_transfer"/>
+                <TextView style="@style/OfflineBody" android:text="@string/offline_export_hint"/>
+                <com.google.android.material.button.MaterialButton android:id="@+id/export_kugoo_file" style="@style/OfflineSecondary" android:text="@string/offline_export"/>
+                <com.google.android.material.button.MaterialButton android:id="@+id/share_kugoo_file" style="@style/OfflineSecondary" android:text="@string/offline_share"/>
+            </LinearLayout>
+            <com.google.android.material.button.MaterialButton android:id="@+id/offline_manual_toggle" style="@style/OfflineSecondary" android:text="@string/offline_manual"/>
+            <LinearLayout android:id="@+id/offline_manual_content" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
+                <com.google.android.material.textfield.TextInputLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox" android:hint="@string/offline_json_hint">
+                    <com.google.android.material.textfield.TextInputEditText android:id="@+id/global_preference_table" android:layout_width="match_parent" android:layout_height="wrap_content" android:minLines="4" android:maxLines="8" android:gravity="top" android:inputType="textMultiLine|textNoSuggestions" android:saveEnabled="false" android:importantForAutofill="no" android:textSize="14sp" android:fontFamily="monospace"/>
+                </com.google.android.material.textfield.TextInputLayout>
+                <com.google.android.material.button.MaterialButton android:id="@+id/import_kugoo_json" style="@style/OfflineButton" android:text="@string/offline_json_import"/>
+            </LinearLayout>
+            <com.google.android.material.button.MaterialButton android:id="@+id/offline_diagnostics_toggle" style="@style/OfflineSecondary" android:text="@string/offline_diagnostics"/>
+            <TextView style="@style/OfflineBody" android:text="@string/offline_data_empty" android:id="@+id/result" android:visibility="gone" android:textIsSelectable="true" android:fontFamily="monospace" android:padding="16dp" android:background="@drawable/bg_offline_panel"/>
+        </LinearLayout>
+    </ScrollView>
+    <ProgressBar android:id="@+id/offline_progress" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="4dp" android:indeterminate="true" android:visibility="gone" android:contentDescription="@string/offline_loading"/>
+</LinearLayout>

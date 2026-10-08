@@ -1,0 +1,47 @@
+Ревью app/src — 2026-10-08
+
+Область: зависимости классов Kugoo/Tuya, ServiceScooter, Connect/Remote/Info,
+жизненный цикл Bluetooth, схемы DP, Android Manifest/ресурсы; Android Lint всего app.
+Это статическое ревью и проверка Kugoo на подключённом телефоне, не аппаратный тест Midway/LED.
+
+Исправлено в этом изменении:
+- Modals: второй setOnDismissListener перезаписывал очистку LifecycleEventObserver.
+  Убрано повторное назначение; исходный обработчик снимает observer и receiver.
+- ServiceScooter: проверка короткого CMD BLE-пакета перед value[0]/value[1].
+- ServiceScooter.onDestroy: закрывается BLE-соединение/WebSocket, вызывается super.
+- RemoteView: защита от клика до получения params, фонарь не рисуется включённым
+  до подтверждения устройства; управление блокируется в ожидании ответа и при offline.
+- KugooTelemetry: поддержаны property/typeSpec как объект либо JSON-строка.
+  На устройстве подтверждён headlight_switch, mode=rw, property.type=bool, id=8.
+- KugooConnection: фонарь отправляется локально через SDK; ID берётся из схемы,
+  неизвестные/небулевы/readonly DP не используются. Service ждёт подтверждения 8 секунд,
+  затем сообщает об ошибке. Ответы старого сеанса отбрасываются по generation.
+
+Остаются находки, требующие отдельного изменения:
+[P1] ServiceScooter.showNotif только вызывает notificationManager.notify. В ScootersApi
+есть startForegroundService, но сервис не вызывает startForeground: этот старый путь
+может завершиться системной ошибкой, а обычный сервис — остановиться в фоне.
+Нужен единый согласованный жизненный цикл foreground service и разрешения Manifest.
+[P2] BluetoothConnect.getAllDevices регистрирует локальный BroadcastReceiver и добавляет
+ScanListener без явной парной очистки. Повторное открытие поиска может удерживать Activity
+и порождать повторные callback. Нужен close/stopScan с вызовом при закрытии Connect.
+[P2] ServiceScooter.parsingParams/getBaseParams используют индексы/arraycopy без полной
+валидации длины кадра и смещения. Исправлена только очевидная короткая CMD-нотификация;
+для Midway нужен набор тестов повреждённых/фрагментированных кадров до рефакторинга парсера.
+[P2] Старый kugooApi сохраняет localKey в обычном offline_device_cache, а старый облачный
+логин использует BuildConfig credentials. Рабочий SDK-путь использует зашифрованный
+KugooProfileStore. Удаление старого пути перечислено в CLEANUP-PLAN.txt.
+[P3] В ScootersApi включено BLE-логирование даже для release; экспериментальные ветки
+пишут сырые пакеты. После согласования очистки отключить release-логи и убрать replay.
+
+Организация проекта:
+29 временных каталогов/дампов/архивов из корня перемещены в other/archive-2026-10-08.
+Сохранены рабочие модули, wrapper, SDK-настройки, app/libs, .git и screens.
+Массовая очистка исходников не применена: автопроверка требует подтверждения точного
+списка из CLEANUP-PLAN.txt. Резервные копии сохранены, действующие классы восстановлены.
+
+Аппаратная проверка: Samsung SM-A065F, KUGOO F3PROMAX 2. Через Remote получены
+последовательные подтверждения headlight_switch=true и headlight_switch=false.
+Фонарь оставлен выключенным. Используется IThingBleManager.publishDps(devId, json, callback).
+Общий IThingDevice.publishDps(Local) не подтвердил изменение и заменён BLE-методом.
+13 unit-тестов проверяют импорт, схему, масштаб, readonly/unknown DP и команды фонаря.

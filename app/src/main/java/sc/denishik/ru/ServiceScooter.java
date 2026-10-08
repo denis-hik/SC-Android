@@ -1,5 +1,6 @@
 package sc.denishik.ru;
 
+import static sc.denishik.ru.kuggoApi.Config.NAME_SCOOTER_KUGOO_BLU;
 import static sc.denishik.ru.ledApiBLU.Config.getDefaultClient;
 import static sc.denishik.ru.midwayApi.ScootersApi.connectScooter;
 import static sc.denishik.ru.midwayApi.base.KeysBaseParam.LIGHT_KEY;
@@ -20,6 +21,7 @@ import static sc.denishik.ru.other.Config.SCOOTER_LED_RECONNECT;
 import static sc.denishik.ru.other.Config.SCOOTER_LED_TEXT;
 import static sc.denishik.ru.other.Config.SCOOTER_SEND_DATA_PARAMS_COMMAND;
 import static sc.denishik.ru.other.Config.SCOOTER_STATUS_CONNECTED;
+import static sc.denishik.ru.other.Config.SCOOTER_STATUS_BINDED;
 import static sc.denishik.ru.other.Config.SCOOTER_STATUS_ERROR;
 import static sc.denishik.ru.other.Config.SCOOTER_STATUS_LOADING;
 import static sc.denishik.ru.other.NotificationCustom.showNotification;
@@ -32,6 +34,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
 import android.util.Log;
@@ -66,6 +69,7 @@ import kotlin.collections.CollectionsKt;
 import kotlin.jvm.internal.Intrinsics;
 import kotlin.text.CharsKt;
 import kotlin.text.Charsets;
+import sc.denishik.ru.kuggoApi.KugooBle;
 import sc.denishik.ru.ledApiBLU.Commands;
 import sc.denishik.ru.ledApiWS.Client;
 import sc.denishik.ru.midwayApi.Config;
@@ -86,6 +90,12 @@ import sc.denishik.ru.midwayApi.help.ValueExtKt;
 
 public class ServiceScooter extends Service implements EventObserver {
 
+    private static final boolean DEBUG_KUGOO_PROTOCOL = true;
+    private static final boolean KUGOO_SEND_OFFICIAL_EXTRA_INIT = true;
+    private static final boolean KUGOO_SEND_TUYA_PAIRING = true;
+    private static final long KUGOO_OFFICIAL_KEEPALIVE_FIRST_DELAY_MS = 13542L;
+    private static final long KUGOO_OFFICIAL_CONNECT_INIT_START_DELAY_MS = 14401L;
+    private static final long[] KUGOO_OFFICIAL_CONNECT_INIT_REL_DELAYS_MS = new long[]{0L, 1562L, 892L, 1070L, 773L, 809L, 790L};
     private int startIdGlobal;
     private Scooter scooter;
     private Intent intent;
@@ -96,20 +106,49 @@ public class ServiceScooter extends Service implements EventObserver {
     private BaseParams params = new BaseParams(0, false, false, false, false, false, false, 0, 0, 0, 0, 0.0f, 0, 0, null, null, 0, 0, 0, 0, 0, null, 4194303, null);
     private FullAdvParams fullAdvParams = new FullAdvParams(false, false, false, 0, 0, 0, 0, 0.0f, 0.0f, 0.0f, 0, 0.0f, 0, 0, 0, 0, 0, 131071, null);
     private int[] bitString = {0, 0, 0, 0, 0, 0, 0, 0};
+    private sc.denishik.ru.tuya.KugooConnection sdkKugoo;
+    private sc.denishik.ru.tuya.KugooTelemetry kugooTelemetry;
+    private org.json.JSONObject kugooDps = new org.json.JSONObject();
+    private boolean sdkKugooSelected;
+    private long kugooDataAt;
+    private boolean loadingKugooProfile;
+    private boolean kugooStatusOnline, kugooStatusFailed;
+    private String kugooStatusMessage = "Восстановление связи с Kugoo…";
+    private String pendingParking;
+    private boolean no_parking;
+    private long nextNoParkingAttempt;
+    private Runnable parkingTimeout;
+    private Boolean pendingHeadlight;
+    private Runnable headlightTimeout;
+    private int selectionGeneration;
+    private final java.util.concurrent.ExecutorService profileWorker = java.util.concurrent.Executors.newSingleThreadExecutor();
     private Connection connection;
     private ParamsList myParamsList = new ParamsList(null, 1, null);
     private String device_name;
     private static List<Stack<Integer>> paramsList = new ArrayList();
     private EasyBLE blu;
     private Handler handler;
+    private HandlerThread kugooHandlerThread;
+    private Handler kugooHandler;
     private static byte[] paramsBuf = new byte[1024];
     private boolean isSendNotif = false;
     private Client clientWS;
     private Runnable timeoutRunnable;
+    private Runnable kugooKeepAliveRunnable;
+    private boolean kugooKeepAliveScheduled = false;
+    private boolean isKugooSessionStarted = false;
+    private boolean isKugooSessionPending = false;
+    private int kugooTxSeq = 0;
+    private int kugooRxSeq = 0;
+    private long kugooSessionStartElapsedMs = 0L;
+    private boolean kugooOfficialExtraInitSent = false;
+    private boolean kugooConnectedBroadcasted = false;
+    private boolean kugooBindCheckPending = false;
+    private boolean kugooBinded = false;
+    private Runnable kugooBindCheckTimeoutRunnable;
     private String TAG = "ServiceScooter";
     private String ChannelNotif = "ServiceScooterNotif";
     NotificationManager notificationManager;
-
 
     @Nullable
     @Override
@@ -124,21 +163,15 @@ public class ServiceScooter extends Service implements EventObserver {
         blu = EasyBLE.getInstance();
         blu.initialize(getApplication());
         handler = new Handler(Looper.getMainLooper());
+        kugooHandlerThread = new HandlerThread("kugoo-proto");
+        kugooHandlerThread.start();
+        kugooHandler = new Handler(kugooHandlerThread.getLooper());
         dataBuffer = DataBuffer.Companion.getInstance();
         timeoutRunnable = new Runnable() {
             @Override // java.lang.Runnable
             public void run() {
                 Log.d(TAG, "Handler> onStart");
-                int i2;
-                int i3;
-                int i4;
-                boolean z2;
                 Handler handler;
-                i2 = 0;
-                int fail = i2 + 1;
-                int failMax = 3;
-                i3 = fail;
-                i4 = failMax;
                 if (scooter == null) {
                     Log.e(TAG, "Handler> scooter == null");
                     return;
@@ -149,6 +182,9 @@ public class ServiceScooter extends Service implements EventObserver {
                 }
                 if (blu.getConnection(scooter.getAddress()).getConnectionState().ordinal() < 4) {
                     Log.e(TAG, "Handler> blu.getConnection(scooter.getAddress()) state< 4 state=".concat(String.valueOf(blu.getConnection(scooter.getAddress()).getConnectionState().ordinal())));
+                    return;
+                }
+                if (KugooBle.isKugooName(device_name)) {
                     return;
                 }
                 byte[] bytes = ("AT+PWD[888888]").getBytes(Charsets.UTF_8);
@@ -171,10 +207,10 @@ public class ServiceScooter extends Service implements EventObserver {
                     NotificationManager.IMPORTANCE_DEFAULT);
             notificationManager.createNotificationChannel(channel);
         }
-        notificationManager.notify(0, showNotification(
+        startForeground(1, showNotification(
                 ChannelNotif,
                 getApplicationContext(),
-                String.valueOf(clientWS.isConnected()),
+                String.valueOf(clientWS != null ? clientWS.isConnected() : false),
                 String.valueOf(params != null ? params.getSpeed() : "not connected")
         ));
     }
@@ -183,10 +219,13 @@ public class ServiceScooter extends Service implements EventObserver {
     public int onStartCommand(Intent intent, int flags, int startId) {
         super.onStartCommand(intent, flags, startId);
         this.intent = intent;
+        Log.d(TAG, String.valueOf(flags));
         showNotif();
         startIdGlobal = startId;
+        if (intent == null) ensureKugooConnection();
         if (intent != null) {
             String command = intent.getStringExtra("command");
+            if (command == null) return START_NOT_STICKY;
 
             switch (command) {
                 case SCOOTER_LED_RECONNECT:
@@ -194,6 +233,19 @@ public class ServiceScooter extends Service implements EventObserver {
                     break;
 
                 case SCOOTER_CONNECT_COMMAND:
+                    if (intent.hasExtra("kugoo_dev_id")) {
+                        connectSavedKugoo(intent.getStringExtra("kugoo_dev_id"));
+                        break;
+                    }
+                    selectionGeneration++;
+                    no_parking = false;
+                    clearPendingParking();
+                    pendingHeadlight = null;
+                    if (headlightTimeout != null) handler.removeCallbacks(headlightTimeout);
+                    sdkKugooSelected = false;
+                    loadingKugooProfile = false;
+                    sc.denishik.ru.tuya.KugooProfileStore.rememberDevice(this, "");
+                    if (sdkKugoo != null) { sdkKugoo.disconnect(); sdkKugoo = null; }
                     uuid = intent.getStringExtra("uuid");
                     device_name = intent.getStringExtra("name_device");
                     connectToScooter(intent.getStringExtra("uuid"),
@@ -204,16 +256,39 @@ public class ServiceScooter extends Service implements EventObserver {
                     break;
 
                 case SCOOTER_GET_DATA_NAME_COMMAND:
+                    ensureKugooConnection();
                     Intent intent1 = new Intent(SCOOTER_GET_DATA_NAME_COMMAND);
-                    intent1.putExtra("name", scooter.getName());
-                    sendBroadcast(intent);
+                    intent1.setPackage(getPackageName());
+                    intent1.putExtra("name", scooter == null ? "" : scooter.getName());
+                    sendBroadcast(intent1);
+                    if (sdkKugooSelected) {
+                        broadcastKugooStatus(kugooStatusOnline, kugooStatusFailed, kugooStatusMessage);
+                        broadcastKugooData();
+                    }
                     break;
 
                 case SCOOTER_SEND_DATA_PARAMS_COMMAND:
+
+                    if (sdkKugooSelected) {
+                        if (intent.getIntExtra("key", -1) == LIGHT_KEY) toggleKugooHeadlight();
+                        else if (intent.getIntExtra("key", -1) == LOCK_KEY) {
+                            if (intent.getBooleanExtra("toggle_no_parking", false)) {
+                                if (kugooTelemetry == null || !kugooTelemetry.canControlParking()) break;
+                                no_parking = !no_parking;
+                                nextNoParkingAttempt = 0;
+                                broadcastKugooData();
+                                enforceNoParking();
+                            } else if (!no_parking) toggleKugooParking();
+                        }
+                        break;
+                    }
+                    if (KugooBle.isKugooName(device_name))
+                        break;
+
                     int key = intent.getIntExtra("key", -1);
                     Object value = (Object) intent.getSerializableExtra("value");
                     if (key == -1 || value == null) {
-                        Log.e(TAG, "onStartCommand> SCOOTER_SEND_DATA_PARAMS_COMMAND> key=".concat(String.valueOf(value).concat(" value=").concat(String.valueOf(value))));
+                        Log.e(TAG, "onStartCommand> SCOOTER_SEND_DATA_PARAMS_COMMAND> key=".concat(String.valueOf(key).concat(" value=").concat(String.valueOf(value))));
                         break;
                     }
                     handleParam(key, value);
@@ -234,14 +309,36 @@ public class ServiceScooter extends Service implements EventObserver {
         }
 
 
-        return START_NOT_STICKY;
+        return sdkKugooSelected ? START_STICKY : START_NOT_STICKY;
     }
 
     @Override
     public void onDestroy() {
+        selectionGeneration++;
+        clearPendingParking();
+        profileWorker.shutdownNow();
+        if (sdkKugoo != null) sdkKugoo.disconnect();
         blu.unregisterObserver(this);
         handler.removeCallbacks(timeoutRunnable);
+        if (headlightTimeout != null) handler.removeCallbacks(headlightTimeout);
+        if (kugooKeepAliveRunnable != null) {
+            if (kugooHandler != null) {
+                kugooHandler.removeCallbacks(kugooKeepAliveRunnable);
+            } else {
+                handler.removeCallbacks(kugooKeepAliveRunnable);
+            }
+        }
+        isKugooSessionStarted = false;
+        isKugooSessionPending = false;
+        if (kugooHandlerThread != null) {
+            kugooHandlerThread.quitSafely();
+            kugooHandlerThread = null;
+            kugooHandler = null;
+        }
         Log.d(TAG, "onDestroy");
+        if (connection != null) connection.disconnect();
+        if (clientWS != null) clientWS.stop();
+        super.onDestroy();
     }
 
     public void onChanged(Object obj) {
@@ -313,8 +410,25 @@ public class ServiceScooter extends Service implements EventObserver {
 
     @Override
     public void onConnectionStateChanged(@NonNull Device device) {
+        if (sdkKugooSelected) return;
         int state = device.getConnectionState().ordinal();
-        Log.d(TAG, "onConnectionStateChanged: deviceName:".concat(String.valueOf(device.getName()).concat("=").concat(device_name)).concat(" state:").concat(String.valueOf(state)));
+
+        Log.d(TAG, "onConnectionStateChanged: deviceName:".concat(String.valueOf(device.getName()).concat("=").concat(String.valueOf(device_name))).concat(" state:").concat(String.valueOf(state)));
+
+        if (KugooBle.isKugooName(device.getName()) && state == 5) {
+            if (isKugooSessionPending || isKugooSessionStarted) {
+                return;
+            }
+            connection = blu.getConnection(device);
+            if (device_name == null || device_name.isEmpty()) {
+                device_name = device.getName();
+            }
+            scooter = new Scooter(device.getName(), uuid, "", device.getAddress(), device);
+
+            Log.d(TAG, "conect");
+            onSendNotif();
+            return;
+        }
         if (Objects.equals(device_name, device.getName()) && device.isConnected() && state == 1) {
             paramsBuf = new byte[1024];
             params = new BaseParams(0, false, false, false, false, false, false, 0, 0, 0, 0, 0.0f, 0, 0, null, null, 0, 0, 0, 0, 0, null, 4194303, null);
@@ -326,6 +440,8 @@ public class ServiceScooter extends Service implements EventObserver {
             Constant constant = Constant.INSTANCE;
             myParamsList = new ParamsList();
             scooter = new Scooter(device.getName(), uuid, "", device.getAddress(), device);
+
+            Log.d(TAG, "send");
             onSendNotif();
             return;
         }
@@ -339,6 +455,8 @@ public class ServiceScooter extends Service implements EventObserver {
     @Override
     public void onConnectFailed(@NonNull Device device, int failType) {
         Log.e(TAG, "onConnectFailed: ".concat(String.valueOf(device)));
+        stopKugooSession();
+
         if (Objects.equals(device_name, device.getName())) {
             Intent intent = new Intent(SCOOTER_CONNECT_COMMAND);
             // You can also include some extra data.
@@ -351,6 +469,7 @@ public class ServiceScooter extends Service implements EventObserver {
     @Override
     public void onConnectTimeout(@NonNull Device device, int type) {
         Log.e(TAG, "onConnectTimeout: ".concat(String.valueOf(device)));
+        stopKugooSession();
         if (Objects.equals(device_name, device.getName())) {
             Intent intent = new Intent(SCOOTER_CONNECT_COMMAND);
             isSendNotif = false;
@@ -362,6 +481,7 @@ public class ServiceScooter extends Service implements EventObserver {
     @Override
     public void onConnectionError(@NonNull Device device, int status) {
         Log.e(TAG, "onConnectionError: ".concat(String.valueOf(device)));
+        stopKugooSession();
         if (Objects.equals(device_name, device.getName())) {
             Intent intent = new Intent(SCOOTER_CONNECT_COMMAND);
             // You can also include some extra data.
@@ -377,6 +497,33 @@ public class ServiceScooter extends Service implements EventObserver {
     @Override
     public void onNotificationChanged(@NotNull Request request, boolean z) {
         Log.d("onNotificationChanged", String.valueOf(request.getCharacteristic()));
+
+        if (KugooBle.isKugooName(device_name)) {
+            if (!z) {
+                return;
+            }
+            if (!isKugooSessionPending || isKugooSessionStarted) {
+                return;
+            }
+            UUID characteristic = request.getCharacteristic();
+            if (characteristic != null && KugooBle.isNotifyChar(characteristic)) {
+                isKugooSessionStarted = true;
+                isKugooSessionPending = false;
+                kugooSessionStartElapsedMs = android.os.SystemClock.elapsedRealtime();
+                Handler protoHandler = kugooHandler != null ? kugooHandler : handler;
+                protoHandler.postDelayed(() -> {
+                    if (connection == null) {
+                        return;
+                    }
+                    if (DEBUG_KUGOO_PROTOCOL) {
+                        Log.d(TAG, "kugoo: starting session after notify enabled");
+                    }
+                    startKugooSession();
+                }, 500L);
+            }
+            return;
+        }
+
         if (!isSendNotif) {
             isSendNotif = true;
             String str = "AT+PWD[888888]";
@@ -389,7 +536,29 @@ public class ServiceScooter extends Service implements EventObserver {
 
     @Override
     public void onCharacteristicChanged(@NonNull Device device, @NonNull UUID service, @NonNull UUID characteristic, @NonNull byte[] value) {
+        if (sdkKugooSelected) return;
+        if (KugooBle.isKugooName(device.getName())) {
+            if (KugooBle.isNotifyChar(characteristic)) {
+                if (DEBUG_KUGOO_PROTOCOL) {
+                    int seq = ++kugooRxSeq;
+                    Log.d(TAG, "kugoo RX[" + seq + "] len=" + value.length + " hex="
+                            + Convert.toHexString$default(Convert.INSTANCE, value, false, 0, 0, 14, null));
+                    if (seq == 1) {
+                        Log.d(TAG, "kugoo: extraInit enabled=" + KUGOO_SEND_OFFICIAL_EXTRA_INIT);
+                    }
+                }
+                if (kugooBindCheckPending) {
+                    handleKugooBindCheckNotification(value);
+                } else if (!kugooConnectedBroadcasted && !kugooBinded) {
+                    broadcastKugooConnected();
+                }
+            }
+            return;
+        }
+
+        Log.d("onCharacteristicChanged", "AT_RX".concat(" str value:").concat(new String(value, StandardCharsets.UTF_8)));
         Constant constant = Constant.INSTANCE;
+
         if (Intrinsics.areEqual(characteristic, constant.getCMD_RX())) {
             Log.d("onCharacteristicChanged", "AT_RX".concat(" str value:").concat(new String(value, StandardCharsets.UTF_8)));
             String data = new String(value, StandardCharsets.UTF_8);
@@ -399,6 +568,7 @@ public class ServiceScooter extends Service implements EventObserver {
             if (blu.isScanning()) {
                 blu.stopScan();
             }
+            if (value.length < 2) return;
             byte b = value[0];
             byte b2 = value[1];
             Log.d(TAG, "b=".concat(String.valueOf(b).concat(" b2=" + String.valueOf(b2))));
@@ -467,12 +637,241 @@ public class ServiceScooter extends Service implements EventObserver {
         String now$default = Common.now$default(Common.INSTANCE, null, 1, null);
         int length = value.length;
         String hexString$default = ByteArrayExtKt.toHexString$default(value, false, false, 3, null);
-        Log.d(TAG, now$default + " onCharacteristicWrite Size: " + length + ", Write: " + hexString$default);
+        Log.d(TAG, now$default + " onCharacteristicRead char=" + request.getCharacteristic()
+                + " size=" + length + " hex=" + hexString$default);
+    }
+
+    private void ensureKugooConnection() {
+        if (loadingKugooProfile) return;
+        if (sdkKugoo != null && sdkKugoo.isActive()) {
+            if (sdkKugoo.isOnline()) sdkKugoo.queryData();
+            return;
+        }
+        String id = sc.denishik.ru.tuya.KugooProfileStore.lastDeviceId(this);
+        if (!id.isEmpty()) connectSavedKugoo(id);
+    }
+
+    private void connectSavedKugoo(String devId) {
+        final int selected = ++selectionGeneration;
+        loadingKugooProfile = true;
+        no_parking = false;
+        nextNoParkingAttempt = 0;
+        clearPendingParking();
+        pendingHeadlight = null;
+        if (headlightTimeout != null) handler.removeCallbacks(headlightTimeout);
+        sdkKugooSelected = true;
+        if (sdkKugoo != null) sdkKugoo.disconnect();
+        sdkKugoo = null;
+        stopKugooSession();
+        handler.removeCallbacks(timeoutRunnable);
+        blu.unregisterObserver(this);
+        if (blu.isScanning()) blu.stopScan();
+        if (connection != null) { connection.disconnect(); connection = null; }
+        kugooDps = new org.json.JSONObject();
+        kugooDataAt = 0;
+        params = new BaseParams();
+        broadcastKugooStatus(false, false, "Загрузка сохранённой привязки…");
+        profileWorker.execute(() -> {
+            try {
+                org.json.JSONObject profile = sc.denishik.ru.tuya.KugooProfileStore.find(this, devId);
+                handler.post(() -> {
+                    if (selected != selectionGeneration) return;
+                    loadingKugooProfile = false;
+                    if (profile == null) { broadcastKugooStatus(false, true, "Импортируйте привязку через настройки Kugoo"); return; }
+                    sc.denishik.ru.tuya.KugooProfileStore.rememberDevice(this, devId);
+                    String address = profile.optString("_bleAddress", profile.optString("mac"));
+                    scooter = new Scooter(profile.optString("name", "Kugoo"), profile.optString("uuid"), "", address);
+                    uuid = profile.optString("uuid");
+                    device_name = "Kugoo SDK";
+                    kugooTelemetry = new sc.denishik.ru.tuya.KugooTelemetry(profile);
+                    sdkKugoo = new sc.denishik.ru.tuya.KugooConnection(getApplication(), new sc.denishik.ru.tuya.KugooConnection.Listener() {
+                        public void onStatus(boolean online, String message) {
+                            if (selected != selectionGeneration) return;
+                            broadcastKugooStatus(online, false, message);
+                            if (!online) {
+                                clearPendingParking();
+                                pendingHeadlight = null;
+                                if (headlightTimeout != null) handler.removeCallbacks(headlightTimeout);
+                                broadcastKugooData();
+                            }
+                            if (online) {
+                                getSharedPreferences("login", MODE_PRIVATE).edit().putString("address", address).apply();
+                                broadcastKugooData();
+                            }
+                        }
+                        public void onData(org.json.JSONObject dps) {
+                            if (selected != selectionGeneration) return;
+                            kugooDps = dps;
+                            kugooDataAt = android.os.SystemClock.elapsedRealtime();
+                            org.json.JSONObject values = kugooTelemetry.decoded(dps);
+                            for (String code : new String[]{"speed", "speed_current", "current_speed"}) {
+                                if (values.opt(code) instanceof Number) params.setSpeed(((Number) values.opt(code)).floatValue());
+                            }
+                            if (values.opt("headlight_switch") instanceof Boolean) params.setHeadLightSw(values.optBoolean("headlight_switch"));
+                            if (values.opt("switch_led") instanceof Boolean) params.setHeadLightSw(values.optBoolean("switch_led"));
+                            if (values.opt("level") instanceof String) params.setLockSw("level_1".equals(values.optString("level")));
+                            if (pendingParking != null && pendingParking.equals(values.optString("level"))) clearPendingParking();
+                            enforceNoParking();
+                            String lightId = kugooTelemetry.headlightDpId();
+                            if (pendingHeadlight != null && lightId != null
+                                    && pendingHeadlight.equals(dps.opt(lightId))) {
+                                pendingHeadlight = null;
+                                if (headlightTimeout != null) handler.removeCallbacks(headlightTimeout);
+                            }
+                            broadcastKugooData();
+                        }
+                        public void onError(String message) {
+                            if (selected != selectionGeneration) return;
+                            clearPendingParking();
+                            pendingHeadlight = null;
+                            if (headlightTimeout != null) handler.removeCallbacks(headlightTimeout);
+                            broadcastKugooStatus(false, true, message);
+                            broadcastKugooData();
+                        }
+                    });
+                    sdkKugoo.connect(profile);
+                });
+            } catch (Exception error) {
+                handler.post(() -> {
+                    if (selected != selectionGeneration) return;
+                    loadingKugooProfile = false;
+                    broadcastKugooStatus(false, true, "Не удалось прочитать привязку Kugoo. Повторите импорт");
+                });
+            }
+        });
+    }
+
+    private void broadcastKugooStatus(boolean online, boolean failed, String message) {
+        kugooStatusOnline = online;
+        kugooStatusFailed = failed;
+        kugooStatusMessage = message;
+        Intent status = new Intent(SCOOTER_CONNECT_COMMAND).setPackage(getPackageName());
+        status.putExtra("Status", online ? SCOOTER_STATUS_CONNECTED : failed ? SCOOTER_STATUS_ERROR : SCOOTER_STATUS_LOADING);
+        status.putExtra("message", message);
+        sendBroadcast(status);
+        Intent connectionState = new Intent(SCOOTER_ERROR_CONNECT).setPackage(getPackageName());
+        connectionState.putExtra("Status", online);
+        sendBroadcast(connectionState);
+    }
+
+    private void broadcastKugooData() {
+        if (scooter == null) return;
+        Intent name = new Intent(SCOOTER_GET_DATA_NAME_COMMAND).setPackage(getPackageName());
+        name.putExtra("name", scooter.getName());
+        sendBroadcast(name);
+        if (kugooDps.length() == 0) return;
+        Intent data = new Intent(SCOOTER_GET_DATA_PARAMS_COMMAND).setPackage(getPackageName());
+        data.putExtra("data", params.toObject());
+        data.putExtra("source", "kugoo");
+        data.putExtra("telemetry_at", kugooDataAt);
+        data.putExtra("telemetry_online", sdkKugoo != null && sdkKugoo.isOnline());
+        data.putExtra("kugoo_level", kugooTelemetry.decoded(kugooDps).optString("level"));
+        data.putExtra("voltage", kugooTelemetry.voltage(kugooDps));
+        data.putExtra("battery_percentage", kugooTelemetry.decoded(kugooDps).optDouble("battery_percentage", Double.NaN));
+        data.putExtra("no_parking", no_parking);
+        data.putExtra("can_set_no_parking", kugooTelemetry.canControlParking());
+        String levelId = kugooTelemetry.levelDpId();
+        data.putExtra("can_toggle_parking", sdkKugoo != null && sdkKugoo.isOnline()
+                && kugooTelemetry.canControlParking() && levelId != null
+                && kugooDps.opt(levelId) instanceof String && pendingParking == null);
+        String lightId = kugooTelemetry.headlightDpId();
+        data.putExtra("can_toggle_headlight", sdkKugoo != null && sdkKugoo.isOnline()
+                && lightId != null && kugooDps.opt(lightId) instanceof Boolean && pendingHeadlight == null);
+        data.putExtra("kugoo_dps", kugooDps.toString());
+        data.putExtra("kugoo_data", kugooTelemetry.describe(kugooDps));
+        sendBroadcast(data);
+    }
+
+    private void clearPendingParking() {
+        pendingParking = null;
+        if (handler != null && parkingTimeout != null) handler.removeCallbacks(parkingTimeout);
+    }
+
+    private void toggleKugooParking() {
+        if (no_parking) return;
+        sendKugooParking(null);
+    }
+
+    private void enforceNoParking() {
+        if (!no_parking || kugooTelemetry == null || pendingParking != null
+                || android.os.SystemClock.elapsedRealtime() < nextNoParkingAttempt) return;
+        String id = kugooTelemetry.levelDpId();
+        if (id != null && "level_1".equals(kugooDps.optString(id))) {
+            nextNoParkingAttempt = android.os.SystemClock.elapsedRealtime() + 3000;
+            sendKugooParking(false);
+        }
+    }
+
+    private void sendKugooParking(Boolean requestedState) {
+        if (sdkKugoo == null || !sdkKugoo.isOnline() || pendingParking != null || kugooTelemetry == null
+                || !kugooTelemetry.canControlParking()) return;
+        String id = kugooTelemetry.levelDpId();
+        if (id == null || !(kugooDps.opt(id) instanceof String)) return;
+        boolean enabled = requestedState != null ? requestedState : !"level_1".equals(kugooDps.optString(id));
+        final int selected = selectionGeneration;
+        pendingParking = enabled ? "level_1" : "level_4";
+        parkingTimeout = () -> {
+            if (selected == selectionGeneration && pendingParking != null)
+                parkingFailed("Самокат не подтвердил переключение паркинга");
+        };
+        handler.postDelayed(parkingTimeout, 8000);
+        broadcastKugooData();
+        sdkKugoo.setParking(enabled, new com.thingclips.smart.sdk.api.IResultCallback() {
+            public void onSuccess() { }
+            public void onError(String code, String message) {
+                if (selected == selectionGeneration) parkingFailed(message);
+            }
+        });
+    }
+
+    private void parkingFailed(String message) {
+        clearPendingParking();
+        Intent error = new Intent(SCOOTER_GET_DATA_PARAMS_COMMAND).setPackage(getPackageName());
+        error.putExtra("command_error", message);
+        sendBroadcast(error);
+        broadcastKugooData();
+    }
+
+    private void toggleKugooHeadlight() {
+        if (sdkKugoo == null || !sdkKugoo.isOnline() || pendingHeadlight != null || kugooTelemetry == null) return;
+        String id = kugooTelemetry.headlightDpId();
+        if (id == null || !(kugooDps.opt(id) instanceof Boolean)) return;
+        final int selected = selectionGeneration;
+        pendingHeadlight = !kugooDps.optBoolean(id);
+        headlightTimeout = () -> {
+            if (selected == selectionGeneration && pendingHeadlight != null)
+                headlightFailed("Самокат не подтвердил переключение фонаря");
+        };
+        handler.postDelayed(headlightTimeout, 8000);
+        broadcastKugooData();
+        sdkKugoo.setHeadlight(pendingHeadlight, new com.thingclips.smart.sdk.api.IResultCallback() {
+            public void onSuccess() { }
+            public void onError(String code, String message) {
+                if (selected == selectionGeneration) headlightFailed(message);
+            }
+        });
+    }
+
+    private void headlightFailed(String message) {
+        pendingHeadlight = null;
+        if (headlightTimeout != null) handler.removeCallbacks(headlightTimeout);
+        Intent error = new Intent(SCOOTER_GET_DATA_PARAMS_COMMAND).setPackage(getPackageName());
+        error.putExtra("command_error", message);
+        sendBroadcast(error);
+        broadcastKugooData();
     }
 
     private void connectToScooter(String uuid, String address, String name, String name_device) {
         blu.registerObserver(this);
         dataBuffer.init();
+        kugooConnectedBroadcasted = false;
+        kugooBindCheckPending = false;
+        kugooBinded = false;
+        if (name_device != null && !name_device.isEmpty()) {
+            device_name = name_device;
+        } else if (device_name == null || device_name.isEmpty()) {
+            device_name = name;
+        }
         connectScooter(new Scooter(name, uuid, "", address), blu, this, new ScootersApi.connectScooterCallback() {
             @Override
             public void onSuccess(Scooter scooterR) {
@@ -495,6 +894,18 @@ public class ServiceScooter extends Service implements EventObserver {
     }
 
     private boolean sendCommandScooter(boolean isCMD, byte[] bytes) {
+        if (connection == null) {
+            return false;
+        }
+        if (KugooBle.isKugooName(device_name)) {
+            if (DEBUG_KUGOO_PROTOCOL) {
+                int seq = ++kugooTxSeq;
+                Log.d(TAG, "kugoo TX[" + seq + "] len=" + bytes.length + " hex="
+                        + Convert.toHexString$default(Convert.INSTANCE, bytes, false, 0, 0, 14, null));
+            }
+            KugooBle.writeNoResponse(connection, bytes);
+            return true;
+        }
         RequestBuilderFactory request = new RequestBuilderFactory();
         if (isCMD) {
             Constant constant = Constant.INSTANCE;
@@ -507,11 +918,230 @@ public class ServiceScooter extends Service implements EventObserver {
     }
 
     public void onSendNotif() {
+        if (KugooBle.isKugooName(device_name)) {
+            if (isKugooSessionPending || isKugooSessionStarted) {
+                return;
+            }
+            if (kugooKeepAliveRunnable != null) {
+                Handler protoHandler = kugooHandler != null ? kugooHandler : handler;
+                protoHandler.removeCallbacks(kugooKeepAliveRunnable);
+            }
+            KugooBle.requestMtu(connection, 200);
+            isKugooSessionPending = true;
+            KugooBle.enableNotifications(connection);
+            return;
+        }
         RequestBuilderFactory requestBuilderFactory = new RequestBuilderFactory();
         Constant constant = Constant.INSTANCE;
         requestBuilderFactory.getSetNotificationBuilder(constant.getCMD_SERVICE(), constant.getCMD_RX(), true).build().execute(connection);
         new RequestBuilderFactory().getSetNotificationBuilder(constant.getDATA_SERVICE(), constant.getDATA_RX(), true).build().execute(connection);
         new RequestBuilderFactory().getChangeMtuBuilder(200).build().execute(connection);
+    }
+
+    private void startKugooSession() {
+        if (connection == null) {
+            return;
+        }
+        Handler protoHandler = kugooHandler != null ? kugooHandler : handler;
+        if (KUGOO_SEND_TUYA_PAIRING) {
+            String code = sc.denishik.ru.kuggoApi.Config.TUYA_MESH_CODE != null
+                    ? sc.denishik.ru.kuggoApi.Config.TUYA_MESH_CODE.trim()
+                    : "";
+            String password = sc.denishik.ru.kuggoApi.Config.TUYA_MESH_PASSWORD != null
+                    ? sc.denishik.ru.kuggoApi.Config.TUYA_MESH_PASSWORD.trim()
+                    : "";
+            if (DEBUG_KUGOO_PROTOCOL && (code.isEmpty() || password.isEmpty())) {
+                Log.w(TAG, "kugoo: TUYA_MESH_CODE/TUYA_MESH_PASSWORD are empty, sending tuyaPairEncReq with empty values");
+            }
+            byte[] pairReq = KugooBle.buildTuyaPairEncReq(code, password);
+            if (pairReq != null) {
+                protoHandler.postDelayed(() -> {
+                    if (connection == null) {
+                        return;
+                    }
+                    kugooBindCheckPending = true;
+                    kugooBinded = false;
+                    if (kugooBindCheckTimeoutRunnable != null) {
+                        protoHandler.removeCallbacks(kugooBindCheckTimeoutRunnable);
+                    }
+                    kugooBindCheckTimeoutRunnable = () -> {
+                        if (!kugooBindCheckPending) {
+                            return;
+                        }
+                        kugooBindCheckPending = false;
+                        if (!kugooConnectedBroadcasted && !kugooBinded) {
+                            broadcastKugooConnected();
+                        }
+                    };
+                    protoHandler.postDelayed(kugooBindCheckTimeoutRunnable, 1500L);
+                    if (DEBUG_KUGOO_PROTOCOL) {
+                        int seq = ++kugooTxSeq;
+                        Log.d(TAG, "kugoo TX[" + seq + "] tuyaPairEncReq len=" + pairReq.length + " hex="
+                                + Convert.toHexString$default(Convert.INSTANCE, pairReq, false, 0, 0, 14, null));
+                    }
+                    KugooBle.writeWithResponse(connection, pairReq);
+                    protoHandler.postDelayed(() -> {
+                        if (connection == null) {
+                            return;
+                        }
+                        if (DEBUG_KUGOO_PROTOCOL) {
+                            int seq = ++kugooTxSeq;
+                            Log.d(TAG, "kugoo TX[" + seq + "] tuyaPairEncReq readPairCharacteristic");
+                        }
+                        KugooBle.readPairCharacteristic(connection);
+                    }, 350L);
+                }, 0L);
+            } else if (DEBUG_KUGOO_PROTOCOL) {
+                Log.w(TAG, "kugoo: tuyaPairEncReq build returned null");
+            }
+        }
+        byte[][] handshake = KugooBle.getHandshakeCommands();
+        long delayMs = 0L;
+        if (DEBUG_KUGOO_PROTOCOL) {
+            Log.d(TAG, "kugoo session start: handshake=" + handshake.length);
+            Log.d(TAG, "kugoo: extraInit enabled=" + KUGOO_SEND_OFFICIAL_EXTRA_INIT);
+        }
+        for (int i = 0; i < handshake.length; i++) {
+            byte[] cmd = handshake[i];
+            byte[] data = cmd;
+            int cmdIndex = i;
+            protoHandler.postDelayed(() -> {
+                if (connection != null) {
+                    if (DEBUG_KUGOO_PROTOCOL) {
+                        int seq = ++kugooTxSeq;
+                        Log.d(TAG, "kugoo TX[" + seq + "] handshake[" + cmdIndex + "] len=" + data.length + " hex="
+                                + Convert.toHexString$default(Convert.INSTANCE, data, false, 0, 0, 14, null));
+                    }
+                    KugooBle.writeNoResponse(connection, data);
+                }
+            }, delayMs);
+            delayMs += 120L;
+        }
+
+        protoHandler.postDelayed(() -> {
+            if (connection == null) {
+                return;
+            }
+            if (kugooRxSeq > 0) {
+                return;
+            }
+            long elapsed = android.os.SystemClock.elapsedRealtime() - kugooSessionStartElapsedMs;
+            if (DEBUG_KUGOO_PROTOCOL) {
+                Log.w(TAG, "kugoo: no RX notifications after " + elapsed + "ms, trying readInfo()");
+            }
+            KugooBle.readInfo(connection);
+        }, delayMs + 800L);
+        if (kugooKeepAliveRunnable == null) {
+            kugooKeepAliveRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    if (connection != null) {
+                        if (DEBUG_KUGOO_PROTOCOL) {
+                            byte[] keepAlive = KugooBle.getKeepAliveCommand();
+                            int seq = ++kugooTxSeq;
+                            Log.d(TAG, "kugoo TX[" + seq + "] keepalive len=" + keepAlive.length + " hex="
+                                    + Convert.toHexString$default(Convert.INSTANCE, keepAlive, false, 0, 0, 14, null));
+                        }
+                        KugooBle.writeNoResponse(connection, KugooBle.getKeepAliveCommand());
+                        Handler protoHandler = kugooHandler != null ? kugooHandler : handler;
+                        protoHandler.postDelayed(this, 1000L);
+                    }
+                }
+            };
+        }
+        if (KUGOO_SEND_OFFICIAL_EXTRA_INIT) {
+            // Official app first keepalive appears ~13.54s after handshake[2].
+            kugooKeepAliveScheduled = true;
+            protoHandler.postDelayed(kugooKeepAliveRunnable, delayMs + KUGOO_OFFICIAL_KEEPALIVE_FIRST_DELAY_MS);
+
+            // Official app sends a burst of 52-byte packets shortly after that (~14.40s after handshake[2]).
+            if (!kugooOfficialExtraInitSent) {
+                kugooOfficialExtraInitSent = true;
+                byte[][] init = KugooBle.getOfficialConnectInitCommands();
+                long sendDelayMs = delayMs + KUGOO_OFFICIAL_CONNECT_INIT_START_DELAY_MS;
+                for (int i = 0; i < init.length; i++) {
+                    byte[] data = init[i];
+                    long rel = i < KUGOO_OFFICIAL_CONNECT_INIT_REL_DELAYS_MS.length
+                            ? KUGOO_OFFICIAL_CONNECT_INIT_REL_DELAYS_MS[i]
+                            : 1000L;
+                    sendDelayMs += rel;
+                    final int idx = i;
+                    final long scheduledDelayMs = sendDelayMs;
+                    protoHandler.postDelayed(() -> {
+                        if (connection == null) {
+                            return;
+                        }
+                        if (DEBUG_KUGOO_PROTOCOL) {
+                            int seq2 = ++kugooTxSeq;
+                            Log.d(TAG, "kugoo TX[" + seq2 + "] connectInit[" + idx + "] delayMs=" + scheduledDelayMs
+                                    + " len=" + data.length + " hex="
+                                    + Convert.toHexString$default(Convert.INSTANCE, data, false, 0, 0, 14, null));
+                        }
+                        KugooBle.writeNoResponse(connection, data);
+                    }, sendDelayMs);
+                }
+            }
+        } else {
+            kugooKeepAliveScheduled = true;
+            protoHandler.postDelayed(kugooKeepAliveRunnable, delayMs + 1000L);
+        }
+    }
+
+    private void broadcastKugooConnected() {
+        kugooConnectedBroadcasted = true;
+        Intent intent = new Intent(SCOOTER_CONNECT_COMMAND);
+        intent.putExtra("Status", SCOOTER_STATUS_CONNECTED);
+        sendBroadcast(intent);
+    }
+
+    private void handleKugooBindCheckNotification(byte[] value) {
+        if (value == null || value.length < 2) {
+            return;
+        }
+        int opcode = value[0] & 0xFF;
+        if (opcode != 0x0D && opcode != 0x0C) {
+            return;
+        }
+        int status = value[1] & 0xFF;
+        boolean binded = status != 0x00;
+        kugooBindCheckPending = false;
+        kugooBinded = binded;
+
+        Handler protoHandler = kugooHandler != null ? kugooHandler : handler;
+        if (kugooBindCheckTimeoutRunnable != null) {
+            protoHandler.removeCallbacks(kugooBindCheckTimeoutRunnable);
+        }
+
+        if (binded) {
+            Intent intent = new Intent(SCOOTER_CONNECT_COMMAND);
+            intent.putExtra("Status", SCOOTER_STATUS_BINDED);
+            if (scooter != null) {
+                intent.putExtra("address", scooter.getAddress());
+            }
+            sendBroadcast(intent);
+            try {
+                blu.disconnectAllConnections();
+            } catch (Throwable ignored) {
+            }
+        } else if (!kugooConnectedBroadcasted) {
+            broadcastKugooConnected();
+        }
+    }
+
+    private void stopKugooSession() {
+        isKugooSessionStarted = false;
+        isKugooSessionPending = false;
+        kugooTxSeq = 0;
+        kugooRxSeq = 0;
+        kugooSessionStartElapsedMs = 0L;
+        kugooOfficialExtraInitSent = false;
+        kugooKeepAliveScheduled = false;
+        if (kugooKeepAliveRunnable != null) {
+            Handler protoHandler = kugooHandler != null ? kugooHandler : handler;
+            if (protoHandler != null) {
+                protoHandler.removeCallbacks(kugooKeepAliveRunnable);
+            }
+        }
     }
 
     public void handleParam(int key, Object value) {
@@ -540,6 +1170,9 @@ public class ServiceScooter extends Service implements EventObserver {
     }
 
     public final void sendParamsData() {
+        if (device_name != null && device_name.contains(NAME_SCOOTER_KUGOO_BLU))
+            return;
+
         LogUtils.d("Send to scooter> params:" + params);
         BaseParams baseParams2 = params.clone();
         byte[] bArr = new byte[10];

@@ -91,7 +91,11 @@ public class BluetoothController {
 			@Override
 			public void run() {
 				HashMap<String, Object> deviceMap = new HashMap<>();
-				deviceMap.put("name", device.getName());
+				try {
+                    deviceMap.put("name", device.getName());
+                } catch (SecurityException denied) {
+                    deviceMap.put("name", "Bluetooth");
+                }
 				deviceMap.put("address", device.getAddress());
 				
 				listener.onConnected(tag, deviceMap);
@@ -176,7 +180,7 @@ public class BluetoothController {
 			
 			try {
 				serverSocket = bluetoothAdapter.listenUsingRfcommWithServiceRecord(tag, uuid);
-			} catch (Exception e) {
+			} catch (java.io.IOException | SecurityException e) {
 				e.printStackTrace();
 			}
 			
@@ -190,7 +194,7 @@ public class BluetoothController {
 			while (!state.equals(STATE_CONNECTED)) {
 				try {
 					bluetoothSocket = serverSocket.accept();
-				} catch (Exception e) {
+				} catch (java.io.IOException | SecurityException e) {
 					e.printStackTrace();
 					break;
 				}
@@ -206,7 +210,7 @@ public class BluetoothController {
 							case STATE_CONNECTED:
 							try {
 								bluetoothSocket.close();
-							} catch (Exception e) {
+							} catch (java.io.IOException | SecurityException e) {
 								e.printStackTrace();
 							}
 							break;
@@ -219,7 +223,7 @@ public class BluetoothController {
 		public void cancel() {
 			try {
 				serverSocket.close();
-			} catch (Exception e) {
+			} catch (java.io.IOException | SecurityException e) {
 				e.printStackTrace();
 			}
 		}
@@ -243,7 +247,7 @@ public class BluetoothController {
 			
 			try {
 				socket = device.createRfcommSocketToServiceRecord(uuid);
-			} catch (Exception e) {
+			} catch (java.io.IOException | SecurityException e) {
 				e.printStackTrace();
 			}
 			
@@ -252,14 +256,13 @@ public class BluetoothController {
 		
 		@Override
 		public void run() {
-			bluetoothAdapter.cancelDiscovery();
-			
 			try {
-				socket.connect();
-			} catch (Exception e) {
+                bluetoothAdapter.cancelDiscovery();
+                socket.connect();
+			} catch (java.io.IOException | SecurityException e) {
 				try {
 					socket.close();
-				} catch (Exception e2) {
+				} catch (java.io.IOException | SecurityException e2) {
 					e2.printStackTrace();
 				}
 				connectionFailed(bluetoothConnect, listener, tag, e.getMessage());
@@ -276,7 +279,7 @@ public class BluetoothController {
 		public void cancel() {
 			try {
 				socket.close();
-			} catch (Exception e) {
+			} catch (java.io.IOException | SecurityException e) {
 				e.printStackTrace();
 			}
 		}
@@ -301,7 +304,7 @@ public class BluetoothController {
 			try {
 				inputStream = socket.getInputStream();
 				outputStream = socket.getOutputStream();
-			} catch (Exception e) {
+			} catch (java.io.IOException | SecurityException e) {
 				e.printStackTrace();
 			}
 			
@@ -320,7 +323,7 @@ public class BluetoothController {
 							listener.onDataReceived(tag, buffer, bytes);
 						}
 					});
-				} catch (Exception e) {
+				} catch (java.io.IOException | SecurityException e) {
 					e.printStackTrace();
 					connectionLost(bluetoothConnect, listener, tag);
 					break;
@@ -338,7 +341,7 @@ public class BluetoothController {
 						listener.onDataSent(tag, buffer);
 					}
 				});
-			} catch (Exception e) {
+			} catch (java.io.IOException | SecurityException e) {
 				e.printStackTrace();
 			}
 		}
@@ -346,7 +349,7 @@ public class BluetoothController {
 		public void cancel() {
 			try {
 				socket.close();
-			} catch (Exception e) {
+			} catch (java.io.IOException | SecurityException e) {
 				e.printStackTrace();
 			}
 		}

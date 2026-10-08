@@ -1,5 +1,19 @@
 <resources>
+    <string name="kugoo_saved_title">Мои Kugoo</string>
+    <string name="kugoo_saved_hint">Включите самокат рядом и выберите его для подключения.</string>
+    <string name="kugoo_connect">Подключить</string>
+    <string name="kugoo_connecting">Подключение…</string>
+    <string name="kugoo_back_to_scan">Поиск Bluetooth</string>
+    <string name="kugoo_add_device">Добавить самокат</string>
+    <string name="kugoo_no_saved">Нажмите «+», чтобы добавить самокат.</string>
+    <string name="kugoo_profile_detail">Сохранённая привязка · …%1$s</string>
+    <string name="kugoo_profile_loading">Загружаем сохранённые самокаты…</string>
     <string name="app_name" translatable="false">SC</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <!-- Tuya / Thingclips (fill from Tuya IoT Platform cloud project) -->
+    <string name="tuya_app_key" translatable="false"></string>
+    <string name="tuya_app_secret" translatable="false"></string>
+    <string name="tuya_country_code" translatable="false">7</string>
 </resources>

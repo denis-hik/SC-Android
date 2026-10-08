@@ -41,6 +41,9 @@ public class Scooter {
     public static final String ADV_BASE_PARAMS = "adv_base_params";
     private FullAdvParams advBaseParams;
 
+    public static final String IS_BINDED = "is_binded";
+    private boolean isBinded;
+
     public Scooter(String name, String uuid, String battery, String address) {
         this.name = name;
         this.battery = battery;
@@ -97,6 +100,10 @@ public class Scooter {
         return this.is_blu_device;
     }
 
+    public boolean getIsBinded() {
+        return this.isBinded;
+    }
+
     public int hashCode() {
         return Objects.hash(name, uuid, battery);
     }
@@ -115,6 +122,10 @@ public class Scooter {
     }
     public void setAdvBaseParams(FullAdvParams advBaseParams) {
         this.advBaseParams = advBaseParams;
+    }
+
+    public void setIsBinded(boolean binded) {
+        this.isBinded = binded;
     }
 
     public void setData(String name, String uuid, String battery, String address) {

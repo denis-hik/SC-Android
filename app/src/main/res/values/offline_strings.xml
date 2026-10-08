@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="offline_title">Подключения Kugoo</string>
+    <string name="offline_back">Назад</string>
+    <string name="offline_intro">Сохраните подключение к самокату или перенесите его на другой телефон.</string>
+    <string name="offline_scooter">Мой самокат</string>
+    <string name="offline_empty">Самокат ещё не добавлен</string>
+    <string name="offline_empty_hint">Импортируйте подключение из Kugoo Riding или выберите сохранённый файл ниже.</string>
+    <string name="offline_ready_hint">Включите самокат рядом с телефоном. Закройте Kugoo Riding, чтобы освободить Bluetooth.</string>
+    <string name="offline_connect">Подключить</string>
+    <string name="offline_disconnect">Отключить</string>
+    <string name="offline_choose">Сменить самокат</string>
+    <string name="offline_idle">Не подключено</string>
+    <string name="offline_add">Добавить подключение</string>
+    <string name="offline_add_hint">На этом телефоне уже есть ваш самокат в Kugoo Riding? Откройте его там один раз, затем закройте приложение.</string>
+    <string name="offline_root">Получить из Kugoo Riding</string>
+    <string name="offline_root_hint">Для этого способа потребуется root-доступ. Импортируется существующая привязка.</string>
+    <string name="offline_file">Импортировать из файла</string>
+    <string name="offline_file_hint">Для файла с другого телефона root не нужен.</string>
+    <string name="offline_transfer">Перенести на другой телефон</string>
+    <string name="offline_export">Экспортировать подключения</string>
+    <string name="offline_share">Поделиться</string>
+    <string name="offline_share_title">Отправить файл подключений</string>
+    <string name="offline_share_preparing">Подготовка файла…</string>
+    <string name="offline_share_error">Не удалось подготовить файл для отправки. Попробуйте ещё раз.</string>
+    <string name="offline_share_unavailable">Нет приложения для отправки файла.</string>
+    <string name="offline_export_hint">Сохраните все подключения в файл, затем импортируйте его на другом устройстве. Файл содержит ключи доступа — храните его у себя.</string>
+    <string name="offline_manual">Вставить JSON вручную</string>
+    <string name="offline_manual_hide">Скрыть ввод JSON</string>
+    <string name="offline_json_hint">JSON подключения</string>
+    <string name="offline_json_import">Сохранить из JSON</string>
+    <string name="offline_diagnostics">Технические данные</string>
+    <string name="offline_diagnostics_hide">Скрыть технические данные</string>
+    <string name="offline_data_empty">Данные появятся после подключения к самокату.</string>
+    <string name="offline_loading">Выполняется операция…</string>
+    <string name="offline_linking">Подключение…</string>
+    <string name="offline_online">Подключено</string>
+    <string name="offline_error">Не удалось подключиться</string>
+</resources>

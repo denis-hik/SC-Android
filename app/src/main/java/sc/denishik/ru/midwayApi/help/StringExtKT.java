@@ -15,7 +15,6 @@ import android.text.style.StrikethroughSpan;
 import android.text.style.StyleSpan;
 import android.view.View;
 
-import androidx.core.internal.view.SupportMenu;
 
 import com.blankj.utilcode.util.LogUtils;
 
@@ -240,7 +239,7 @@ public class StringExtKT {
 
     public static /* synthetic */ CharSequence toBackgroundColorSpan$default(CharSequence charSequence, IntRange intRange, int i2, int i3, Object obj) {
         if ((i3 & 2) != 0) {
-            i2 = SupportMenu.CATEGORY_MASK;
+            i2 = 0xFFFF0000;
         }
         return toBackgroundColorSpan(charSequence, intRange, i2);
     }
@@ -270,7 +269,7 @@ public class StringExtKT {
 
     public static /* synthetic */ CharSequence toClickSpan$default(CharSequence charSequence, IntRange intRange, int i2, boolean z2, Function0 function0, int i3, Object obj) {
         if ((i3 & 2) != 0) {
-            i2 = SupportMenu.CATEGORY_MASK;
+            i2 = 0xFFFF0000;
         }
         if ((i3 & 4) != 0) {
             z2 = false;
@@ -289,7 +288,7 @@ public class StringExtKT {
 
     public static /* synthetic */ CharSequence toColorSpan$default(CharSequence charSequence, IntRange intRange, int i2, int i3, Object obj) {
         if ((i3 & 2) != 0) {
-            i2 = SupportMenu.CATEGORY_MASK;
+            i2 = 0xFFFF0000;
         }
         return toColorSpan(charSequence, intRange, i2);
     }

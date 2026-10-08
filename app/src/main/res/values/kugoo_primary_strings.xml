@@ -1,0 +1,7 @@
+<resources>
+    <string name="kugoo_primary_title">Выберите основной самокат</string>
+    <string name="kugoo_primary_hint">Он будет выбран по умолчанию. Остальные подключения тоже сохранятся.</string>
+    <string name="kugoo_primary_select">Выбрать основным</string>
+    <string name="kugoo_primary_keep">Оставить основным</string>
+    <string name="kugoo_primary_current">Основной сейчас · …%1$s</string>
+</resources>
