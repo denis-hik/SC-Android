@@ -17,7 +17,9 @@ public class Client {
     private String id_board = Config.ID_BOARD;
     private WebSocketClient client;
     private CallBack callBack;
-    private boolean isConnected = false;
+    private volatile boolean isConnected = false;
+    private volatile boolean stopped = false;
+    private final boolean retryEnabled;
     private checkServerCallback callBackCheck;
     private boolean isCheck = false;
     private URI url;
@@ -31,6 +33,11 @@ public class Client {
     }
 
     public Client(String ip_host, String ip_client, CallBack callBack) {
+        this(ip_host, ip_client, callBack, false);
+    }
+
+    private Client(String ip_host, String ip_client, CallBack callBack, boolean retryEnabled) {
+        this.retryEnabled = retryEnabled;
         this.callBack = callBack;
         if (ip_client != null) {
             this.ip_client = ip_client;
@@ -51,7 +58,7 @@ public class Client {
             }
         };
         try {
-            url = new URI("ws://".concat(ip_host).concat(":").concat(port_client).concat("/hub/").concat(id_board));
+            url = new URI("ws://".concat(this.ip_host).concat(":").concat(port_client).concat("/hub/").concat(id_board));
         } catch (Exception e) {
 
         }
@@ -60,6 +67,10 @@ public class Client {
 
     public Client(CallBack callBack) {
         this(null, null, callBack);
+    }
+
+    public Client(CallBack callBack, boolean retryEnabled) {
+        this(null, null, callBack, retryEnabled);
     }
 
     public String getUrl() {
@@ -72,7 +83,7 @@ public class Client {
     }
 
     public boolean isConnected() {
-        return isConnected;
+        return !stopped && isConnected;
     }
     public void checkServer(checkServerCallback callback) {
 //        RequestNetwork requestNetwork = new RequestNetwork(activity);
@@ -107,11 +118,13 @@ public class Client {
     }
 
     public void connectServer() {
+        if (stopped) return;
         try {
             Log.i(TAG, "WS onStart url:".concat(String.valueOf(url)));
             client = new WebSocketClient(url) {
                 @Override
                 public void onOpen() {
+                    if (stopped) { close(); return; }
                     Log.i(TAG, "WebSocket> Session is starting");
                     isConnected = true;
                     Client.this.callBack.onOpen();
@@ -119,6 +132,7 @@ public class Client {
 
                 @Override
                 public void onTextReceived(String s) {
+                    if (stopped) return;
                     Log.i(TAG, "WebSocket> Message received msg:".concat(s));
                     isConnected = true;
                     Client.this.callBack.onGetText(s);
@@ -143,6 +157,7 @@ public class Client {
 
                 @Override
                 public void onException(Exception e) {
+                    if (stopped) return;
                     Log.e(TAG,"WebSocket>" + String.valueOf(e.getMessage()));
                     isConnected = false;
                     Client.this.callBack.onError(String.valueOf(e.getMessage()));
@@ -150,13 +165,15 @@ public class Client {
 
                 @Override
                 public void onCloseReceived() {
+                    if (stopped) return;
                     Log.i(TAG, "WebSocket> Closed ");
                     isConnected = false;
                     Client.this.callBack.onStop();
                 }
             };
 
-            client.enableAutomaticReconnection(100);
+            client.setConnectTimeout(5000);
+            if (retryEnabled) client.enableAutomaticReconnection(5000);
             client.connect();
         } catch (Exception e) {
             Log.e(TAG, "connectServer: ".concat(String.valueOf(e.getMessage())) );
@@ -168,22 +185,20 @@ public class Client {
         return "http://".concat(ip_host.concat(":").concat(port_client));
     }
 
-    public void sendWS(String key, String value) {
-        if (client == null) {
-            //MyDevices/b4794cda/8a7b88e5/set/_n9=146
-            Log.e(TAG, "sendWS: client == null" );
-            return;
-        }
+    public synchronized void sendWS(String key, String value) {
+        if (client == null || !isConnected()) return;
         String url = "MyDevices/".concat(id_board).concat("/8a7b88e5/set/").concat(key).concat("=".concat(value));
         Log.d(TAG, "onSend> ".concat(url));
         client.send(url);
     }
 
 
-    public void stop() {
+    public synchronized void stop() {
+        if (stopped) return;
+        stopped = true;
+        isConnected = false;
         try {
-            client.onCloseReceived();
-            client.close();
+            if (client != null) client.close();
         } catch (Exception e) {
 
         }

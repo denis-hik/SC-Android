@@ -1,0 +1,31 @@
+<resources>
+<string name="kugoo_auth_title">Авторизация и получение</string>
+<string name="ka_intro">Получите ключи своих самокатов из аккаунта Kugoo. Самокат должен быть добавлен в этот аккаунт.\n\nВнимание: официальное приложение Kugoo должно быть запущено перед авторизацией и получением данных. Нужен интернет. Root не требуется. Проверено с Kugoo 1.0.2.\n\nВыберите регион регистрации аккаунта. Сейчас вход проверен для России через европейский сервер.</string>
+<string name="ka_next">Далее</string>
+<string name="ka_back">Назад</string>
+<string name="ka_close">Закрыть</string>
+<string name="ka_check">Проверить снова</string>
+<string name="ka_region">Регион аккаунта</string>
+<string name="ka_email">Электронная почта</string>
+<string name="ka_password">Пароль</string>
+<string name="ka_signin">Войти и получить ключи</string>
+<string name="ka_invalid">Введите корректную электронную почту и пароль не короче 5 символов</string>
+<string name="ka_requirements">%1$s Официальное Kugoo установлено и поддерживается\n%2$s Есть подключение к интернету</string>
+<string name="ka_steps">Шаг %1$d из 4</string>
+<string name="ka_prepare">Подготовка защищённого соединения…</string>
+<string name="ka_token">Получение токена авторизации…</string>
+<string name="ka_login">Проверка логина и пароля…</string>
+<string name="ka_homes">Получение списка самокатов…</string>
+<string name="ka_keys">Получение ключей подключения…</string>
+<string name="ka_saving">Сохранение подключения…</string>
+<string name="ka_success">Успешно получено</string>
+<string name="ka_saved">Самокат выбран. Теперь можно подключиться к нему.</string>
+<string name="ka_failure">Не удалось получить подключение</string>
+<string name="ka_retry">Попробовать снова</string>
+<string name="ka_empty">В этом аккаунте нет самокатов. Добавьте самокат в официальном приложении и повторите вход.</string>
+<string name="ka_network">Не удалось связаться с сервером. Проверьте интернет и повторите попытку.</string>
+<string name="ka_app">Установите совместимое официальное приложение Kugoo. Проверена версия 1.0.2.</string>
+<string name="ka_credentials">Проверьте регион аккаунта, электронную почту и пароль.</string>
+<string name="ka_save_error">Ключи получены, но сохранить подключение на телефоне не удалось. Повторите попытку.</string>
+<string name="ka_other_error">Сервер или протокол приложения отклонил запрос. Код: %1$s</string>
+</resources>

@@ -1,0 +1,19 @@
+<resources>
+    <string name="led_settings_speed_title">Целевая скорость</string>
+    <string name="led_settings_speed_value">Целевая скорость: %1$d км/ч</string>
+    <string name="led_settings_speed_hint">30–150 км/ч. При этой скорости параметр подсветки достигает 255. Настройка меняет только шкалу LED, а не скорость самоката.</string>
+    <string name="led_settings_title">Настройки LED</string>
+    <string name="led_settings_intro">Укажите адрес контроллера GyverHub. После сохранения приложение переподключится к плате.</string>
+    <string name="led_settings_host">IP или имя платы</string>
+    <string name="led_settings_host_hint">Например: 192.168.4.1 — без ws:// и порта</string>
+    <string name="led_settings_port">Порт WebSocket</string>
+    <string name="led_settings_board">ID платы (ID_BOARD)</string>
+    <string name="led_settings_board_hint">Идентификатор из прошивки GyverHub</string>
+    <string name="led_settings_save">Сохранить и подключить</string>
+    <string name="led_settings_cancel">Отмена</string>
+    <string name="led_settings_host_error">Введите IP или имя узла без протокола, пути и порта</string>
+    <string name="led_settings_port_error">Допустимый порт: от 1 до 65535</string>
+    <string name="led_settings_board_error">Используйте латинские буквы, цифры, дефис или подчёркивание</string>
+    <string name="led_settings_saved">Настройки сохранены. Подключение к плате…</string>
+    <string name="led_settings_reconnect_error">Настройки сохранены. Нажмите обновление на экране LED для подключения.</string>
+</resources>

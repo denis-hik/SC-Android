@@ -1,0 +1,4 @@
+<resources>
+    <string name="kurwa_author_tiktok">Открыть TikTok автора — @f3proma_ai</string>
+    <string name="author_link_unavailable">Не удалось открыть ссылку. Установите браузер или TikTok.</string>
+</resources>

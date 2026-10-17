@@ -1,149 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical"
-    android:id="@+id/linear1"
-    android:padding="10dp">
-    <ImageView
-        android:layout_gravity="center_horizontal"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:src="@drawable/permission"
-    />
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:textSize="20dp"
-        android:textStyle="bold"
-        android:textColor="#000"
-        android:text="Agree permission"
-    />
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="* Bluetooth"
-        android:textColor="#000"
-    />
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="* Location"
-        android:textColor="#000"
-    />
-    <CheckBox
-        android:id="@+id/location"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Use map (share location on map provider)"
-    />
-    <androidx.cardview.widget.CardView
-        android:id="@+id/info"
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
-        app:cardCornerRadius="10dp"
-        android:visibility="gone"
-        android:layout_marginTop="10dp"
-        app:cardBackgroundColor="@color/colorPrimary"
-        app:cardElevation="0dp"
-        >
-        <LinearLayout
-            android:layout_gravity="center"
-            android:layout_width="match_parent"
-            android:padding="2dp"
-            android:layout_height="match_parent">
-            <androidx.cardview.widget.CardView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                app:cardElevation="0dp"
-                app:cardCornerRadius="8dp"
-                >
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="horizontal"
-                >
-                    <ImageView
-                        android:layout_width="40dp"
-                        android:layout_height="match_parent"
-                        android:src="@drawable/bluetooth_connect"
-                        app:tint="?colorControlNormal" />
-                    <TextView
-                        android:layout_marginLeft="10dp"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="Permission is required gps for to work Bluetooth"
-                    />
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-    >
-        <androidx.cardview.widget.CardView
-            android:layout_weight="1"
-            android:layout_width="match_parent"
-            android:layout_height="40dp"
-            app:cardCornerRadius="10dp"
-            android:layout_marginTop="10dp"
-            app:cardBackgroundColor="@color/colorPrimary"
-            app:cardElevation="0dp"
-            >
-            <LinearLayout
-                android:id="@+id/back"
-                android:layout_gravity="center"
-                android:layout_width="match_parent"
-                android:padding="4dp"
-                android:layout_height="wrap_content">
-                <androidx.cardview.widget.CardView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    app:cardElevation="0dp"
-                    app:cardCornerRadius="5dp"
-                    >
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="Back"
-                        android:background="#fff"
-                        android:textColor="@color/colorPrimary"
-                        android:padding="5dp"
-                        android:gravity="center"
-                        />
-                </androidx.cardview.widget.CardView>
-
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-        <androidx.cardview.widget.CardView
-            android:layout_marginLeft="5dp"
-            android:layout_weight="1"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="10dp"
-            android:layout_marginTop="10dp"
-            app:cardElevation="0dp"
-            >
-            <LinearLayout
-                android:id="@+id/go"
-                android:layout_width="match_parent"
-                android:background="@color/colorPrimary"
-                android:layout_height="wrap_content">
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:text="Go"
-                    android:textColor="#fff"
-                    android:padding="10dp"
-                    android:gravity="center"
-                    />
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-    </LinearLayout>
-
-
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/bg_connect_sheet" android:fillViewport="true">
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="24dp">
+<ImageView android:layout_width="56dp" android:layout_height="56dp" android:layout_gravity="center_horizontal" android:padding="12dp" android:src="@drawable/bluetooth_connect" app:tint="@color/connect_action_text" android:background="@drawable/bg_connect_action" android:importantForAccessibility="no" />
+<TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="22sp" android:textColor="@color/app_text" android:text="@string/permission_title" android:gravity="center" android:textStyle="bold" android:layout_marginTop="16dp" />
+<TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="14sp" android:textColor="@color/app_text_secondary" android:text="@string/permission_intro" android:gravity="center" android:layout_marginTop="8dp" android:layout_marginBottom="12dp" />
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp" android:layout_marginTop="10dp" android:background="@drawable/bg_connect_card">
+<TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="16sp" android:textColor="@color/app_text" android:text="@string/permission_bluetooth" android:textStyle="bold" />
+<TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="14sp" android:textColor="@color/app_text_secondary" android:text="@string/permission_bluetooth_body" android:layout_marginTop="6dp" />
+<TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="13sp" android:textColor="@color/connect_action_text" android:id="@+id/permission_bluetooth_status" android:layout_marginTop="10dp" android:accessibilityLiveRegion="polite" />
 </LinearLayout>
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp" android:layout_marginTop="10dp" android:background="@drawable/bg_connect_card">
+<TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="16sp" android:textColor="@color/app_text" android:text="@string/permission_location" android:textStyle="bold" />
+<TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="14sp" android:textColor="@color/app_text_secondary" android:text="@string/permission_location_body" android:layout_marginTop="6dp" />
+<TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="13sp" android:textColor="@color/connect_action_text" android:id="@+id/permission_location_status" android:layout_marginTop="10dp" android:accessibilityLiveRegion="polite" />
+</LinearLayout>
+<TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="12sp" android:textColor="@color/app_text_secondary" android:layout_marginTop="16dp" android:text="@string/permission_maps_body"  />
+<TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="13sp" android:textColor="@color/app_text_secondary" android:id="@+id/permission_hint" android:layout_marginTop="16dp" android:accessibilityLiveRegion="polite" />
+<com.google.android.material.button.MaterialButton android:id="@+id/go" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="52dp" android:layout_marginTop="16dp" android:text="@string/permission_allow" android:textAllCaps="false" android:textColor="@color/app_text" app:backgroundTint="@color/colorPrimary" app:cornerRadius="16dp" />
+<com.google.android.material.button.MaterialButton android:id="@+id/back" style="@style/Widget.MaterialComponents.Button.TextButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/permission_later" android:textAllCaps="false" android:textColor="@color/app_text_secondary" />
+</LinearLayout>
+</ScrollView>

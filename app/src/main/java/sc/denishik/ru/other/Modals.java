@@ -1,6 +1,5 @@
 package sc.denishik.ru.other;
 
-import static sc.denishik.ru.ledApiBLU.Config.setDefaultClient;
 import static sc.denishik.ru.midwayApi.ScootersApi.getScooters;
 import static sc.denishik.ru.other.Config.SCOOTER_CONNECT_COMMAND;
 import static sc.denishik.ru.other.Config.SCOOTER_STATUS_CONNECTED;
@@ -54,6 +53,116 @@ import sc.denishik.ru.kuggoApi.kugooApi;
 import sc.denishik.ru.tuya.OfflineKeysActivity;
 
 public class Modals {
+    public static void SettingsWSModal(AppCompatActivity activity) {
+        if (activity.isFinishing() || activity.isDestroyed()) return;
+        sc.denishik.ru.ledApiWS.Config.load(activity);
+        com.google.android.material.bottomsheet.BottomSheetDialog dialog =
+                new com.google.android.material.bottomsheet.BottomSheetDialog(activity);
+        View content = activity.getLayoutInflater().inflate(R.layout.led_ws_settings_sheet, null);
+        content.findViewById(R.id.led_info).setOnClickListener(v -> InfoWSModal(activity));
+        EditText host = content.findViewById(R.id.ws_host_input);
+        EditText port = content.findViewById(R.id.ws_port_input);
+        EditText board = content.findViewById(R.id.ws_board_input);
+        host.setText(sc.denishik.ru.ledApiWS.Config.IP_HOST_DEFAULT);
+        port.setText(sc.denishik.ru.ledApiWS.Config.PORT_CLIENT_DEFAULT);
+        board.setText(sc.denishik.ru.ledApiWS.Config.ID_BOARD);
+        com.google.android.material.slider.Slider targetSpeed = content.findViewById(R.id.ws_target_speed);
+        TextView speedLabel = content.findViewById(R.id.ws_target_speed_label);
+        targetSpeed.setValue(sc.denishik.ru.ledApiWS.Config.TARGET_SPEED);
+        speedLabel.setText(activity.getString(R.string.led_settings_speed_value, Math.round(targetSpeed.getValue())));
+        targetSpeed.addOnChangeListener((slider, value, fromUser) ->
+                speedLabel.setText(activity.getString(R.string.led_settings_speed_value, Math.round(value))));
+        com.google.android.material.textfield.TextInputLayout hostLayout = content.findViewById(R.id.ws_host_layout);
+        com.google.android.material.textfield.TextInputLayout portLayout = content.findViewById(R.id.ws_port_layout);
+        com.google.android.material.textfield.TextInputLayout boardLayout = content.findViewById(R.id.ws_board_layout);
+        content.findViewById(R.id.ws_cancel).setOnClickListener(v -> dialog.dismiss());
+        content.findViewById(R.id.ws_save).setOnClickListener(v -> {
+            hostLayout.setError(null); portLayout.setError(null); boardLayout.setError(null);
+            String hostValue = host.getText().toString().trim();
+            String boardValue = board.getText().toString().trim();
+            boolean valid = true;
+            try {
+                java.net.URI address = new java.net.URI("ws://" + hostValue);
+                if (hostValue.isEmpty() || address.getHost() == null || address.getRawUserInfo() != null
+                        || address.getPort() != -1 || !address.getRawPath().isEmpty()
+                        || address.getRawQuery() != null || address.getRawFragment() != null)
+                    throw new IllegalArgumentException();
+            } catch (Exception invalid) { hostLayout.setError(activity.getString(R.string.led_settings_host_error)); valid = false; }
+            int portValue = 0;
+            try {
+                portValue = Integer.parseInt(port.getText().toString().trim());
+                if (portValue < 1 || portValue > 65535) throw new IllegalArgumentException();
+            } catch (Exception invalid) { portLayout.setError(activity.getString(R.string.led_settings_port_error)); valid = false; }
+            if (!boardValue.matches("[A-Za-z0-9_-]{1,64}")) {
+                boardLayout.setError(activity.getString(R.string.led_settings_board_error)); valid = false;
+            }
+            if (!valid) return;
+            sc.denishik.ru.ledApiWS.Config.save(activity, hostValue, String.valueOf(portValue), boardValue,
+                    Math.round(targetSpeed.getValue()));
+            int message = R.string.led_settings_saved;
+            try {
+                activity.startService(new Intent(activity, ServiceScooter.class)
+                        .putExtra("command", sc.denishik.ru.other.Config.SCOOTER_LED_RECONNECT));
+            } catch (IllegalStateException | SecurityException unavailable) {
+                message = R.string.led_settings_reconnect_error;
+            }
+            android.widget.Toast.makeText(activity, message, android.widget.Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+        dialog.setContentView(content);
+        dialog.getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+        androidx.lifecycle.LifecycleEventObserver observer = (owner, event) -> {
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_DESTROY) dialog.dismiss();
+        };
+        activity.getLifecycle().addObserver(observer);
+        dialog.setOnDismissListener(ignored -> activity.getLifecycle().removeObserver(observer));
+        dialog.show();
+        dialog.getWindow().findViewById(R.id.design_bottom_sheet)
+                .setBackgroundResource(android.R.color.transparent);
+        dialog.getBehavior().setState(com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED);
+    }
+
+    public static void InfoWSModal(AppCompatActivity activity) {
+        if (activity.isFinishing() || activity.isDestroyed()) return;
+        sc.denishik.ru.ledApiWS.Config.load(activity);
+        com.google.android.material.bottomsheet.BottomSheetDialog dialog =
+                new com.google.android.material.bottomsheet.BottomSheetDialog(activity);
+        View content = activity.getLayoutInflater().inflate(R.layout.led_info_sheet, null);
+        String board = sc.denishik.ru.ledApiWS.Config.ID_BOARD;
+        String address = "ws://" + sc.denishik.ru.ledApiWS.Config.IP_HOST_DEFAULT + ":"
+                + sc.denishik.ru.ledApiWS.Config.PORT_CLIENT_DEFAULT + "/hub/" + board;
+        ((TextView) content.findViewById(R.id.led_info_destination)).setText(
+                activity.getString(R.string.led_info_destination, address));
+        ((TextView) content.findViewById(R.id.led_info_payload)).setText(
+                activity.getString(R.string.led_info_payload, board,
+                        String.valueOf(sc.denishik.ru.ledApiWS.Config.ledValue(10, false)),
+                        sc.denishik.ru.ledApiWS.Config.TARGET_SPEED));
+        content.findViewById(R.id.led_info_close).setOnClickListener(v -> dialog.dismiss());
+        content.findViewById(R.id.led_info_source).setOnClickListener(v -> {
+            try {
+                activity.startActivity(new Intent(Intent.ACTION_VIEW,
+                        android.net.Uri.parse("https://github.com/GyverLibs/GyverHub/")));
+            } catch (android.content.ActivityNotFoundException ignored) {
+                android.widget.Toast.makeText(activity, R.string.led_info_no_browser,
+                        android.widget.Toast.LENGTH_SHORT).show();
+            }
+        });
+        dialog.setContentView(content);
+        androidx.lifecycle.LifecycleEventObserver observer = (owner, event) -> {
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_DESTROY) dialog.dismiss();
+        };
+        activity.getLifecycle().addObserver(observer);
+        dialog.setOnDismissListener(ignored -> activity.getLifecycle().removeObserver(observer));
+        dialog.show();
+        dialog.getWindow().findViewById(R.id.design_bottom_sheet)
+                .setBackgroundResource(android.R.color.transparent);
+    }
+
+    public static void showKugooLogin(AppCompatActivity activity) {
+        if (activity.getSupportFragmentManager().findFragmentByTag("kugoo_login") == null)
+            new KugooLoginSheet().show(activity.getSupportFragmentManager(), "kugoo_login");
+    }
+
     public interface KugooProfileSelection {
         void onSelected(org.json.JSONObject profile);
     }
@@ -119,43 +228,8 @@ public class Modals {
     public interface showPermissionCallback {
         void onRequest(com.google.android.material.bottomsheet.BottomSheetDialog dialog);
     }
-    public static void showPermissionModal(AppCompatActivity activity, showPermissionCallback callback) {
-        if (activity.getSharedPreferences("file", Context.MODE_PRIVATE).contains("isOpened")) {
-            callback.onRequest(null);
-            return;
-        }
-        final com.google.android.material.bottomsheet.BottomSheetDialog dialog = new com.google.android.material.bottomsheet.BottomSheetDialog(activity);
-        View lay = activity.getLayoutInflater().inflate(R.layout.permisson_view, null); dialog.setContentView(lay);
-
-        final LinearLayout linear1 = (LinearLayout)lay.findViewById(R.id.linear1);
-        final LinearLayout go = lay.findViewById(R.id.go);
-        final LinearLayout back = lay.findViewById(R.id.back);
-        final CheckBox location = lay.findViewById(R.id.location);
-        final CardView info = lay.findViewById(R.id.info);
-
-        dialog.getWindow().findViewById(R.id.design_bottom_sheet).setBackgroundResource(android.R.color.transparent);
-        dialog.show();
-        dialog.setCancelable(false);
-        android.graphics.drawable.GradientDrawable wd = new android.graphics.drawable.GradientDrawable();
-        wd.setColor(androidx.core.content.ContextCompat.getColor(activity, R.color.app_surface));
-        wd.setCornerRadius((int) 10f);
-        linear1.setBackground(wd);
-
-        location.setChecked(true);
-        info.setVisibility(View.VISIBLE);
-
-        activity.getSharedPreferences("file", Context.MODE_PRIVATE).edit().putString("isLoc",  "1").apply();
-
-        go.setOnClickListener(v -> {
-            activity.getSharedPreferences("file", Context.MODE_PRIVATE).edit().putString("isOpened", "1").apply();
-            callback.onRequest(dialog);
-        });
-        back.setOnClickListener(v -> {
-            activity.finish();
-        });;
-        location.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            activity.getSharedPreferences("file", Context.MODE_PRIVATE).edit().putString("isLoc", isChecked ? "1" : "0").apply();
-        });
+    public static com.google.android.material.bottomsheet.BottomSheetDialog showPermissionModal(AppCompatActivity activity, showPermissionCallback callback) {
+        return ConnectionPermissions.show(activity, callback);
 
     }
 
@@ -163,84 +237,7 @@ public class Modals {
         void onConnect(Client client);
     }
     public static void showModalLedsBluetooth(AppCompatActivity activity, ICallback callbackModal) {
-        final LinearLayout[] loading_item = new LinearLayout[1];
-        final LinearLayout[] loaded_item = new LinearLayout[1];
-        final boolean[] isShow = {false};
-        final com.google.android.material.bottomsheet.BottomSheetDialog dialog = new com.google.android.material.bottomsheet.BottomSheetDialog(activity);
-        View lay = activity.getLayoutInflater().inflate(R.layout.connect_view, null); dialog.setContentView(lay);
-        final LinearLayout linear1 = (LinearLayout)lay.findViewById(R.id.linear1);
-        final ListView listView1 = lay.findViewById(R.id.listview1);
-        final TextView title = lay.findViewById(R.id.title);
-        final ImageView empty = lay.findViewById(R.id.empty);
-        final ImageView refresh = lay.findViewById(R.id.refresh);
-        final ProgressBar loading = lay.findViewById(R.id.loading);
-        final LinearLayout connect_block = lay.findViewById(R.id.connect_block);
-        final LinearLayout base_block = lay.findViewById(R.id.base_block);
-        final EditText connect_text = lay.findViewById(R.id.connect_text);
-        final ImageView connect_go = lay.findViewById(R.id.connect_go);
-        final ImageView connect = lay.findViewById(R.id.connect);
-        final ImageView connect_back = lay.findViewById(R.id.connect_back);
-
-        AtomicReference<Client> client = new AtomicReference<>(new Client(activity));
-        Client.Callback callback = new Client.Callback() {
-            @Override
-            public void onSuccess(ArrayList<LedBluDevice> result) {
-                activity.runOnUiThread( () -> {
-                    if (result.size() > 0) {
-                        listView1.setVisibility(View.VISIBLE);
-                        listView1.setAdapter(new Adapters.ListviewLedsBLUAdapter(result, activity, (device, loading1, loaded) -> {
-                            loading_item[0] = loading1;
-                            loaded_item[0] = loaded;
-                            client.get().selectDevice(device);
-                            dialog.dismiss();
-                            setDefaultClient(client.get());
-                            callbackModal.onConnect(client.get());
-                        }));
-                        loading.setVisibility(View.GONE);
-                        connect_back.setVisibility(View.GONE);
-                    } else {
-                        connect.setVisibility(View.GONE);
-                        refresh.setVisibility(View.GONE);
-                        empty.setVisibility(View.GONE);
-                        base_block.setVisibility(View.VISIBLE);
-                        loading.setVisibility(View.VISIBLE);
-                        listView1.setVisibility(View.GONE);
-                        connect_block.setVisibility(View.GONE);
-                        connect_back.setVisibility(View.GONE);
-                    }
-                });
-            }
-
-            @Override
-            public void onError(String err) {
-                loading_item[0].setVisibility(View.GONE);
-                loaded_item[0].setVisibility(View.VISIBLE);
-                connect.setVisibility(View.VISIBLE);
-                loading.setVisibility(View.GONE);
-                empty.setVisibility(View.VISIBLE);
-                listView1.setVisibility(View.GONE);
-                refresh.setVisibility(View.VISIBLE);
-                base_block.setVisibility(View.VISIBLE);
-                connect_block.setVisibility(View.GONE);
-                connect_back.setVisibility(View.GONE);
-            }
-        };
-
-        dialog.getWindow().findViewById(R.id.design_bottom_sheet).setBackgroundResource(android.R.color.transparent);
-        dialog.show();
-
-        title.setText("Connect LED");
-        connect.setImageResource(R.drawable.refresh);
-        refresh.setImageResource(R.drawable.back);
-        refresh.setOnClickListener(v -> {
-            dialog.dismiss();
-        });
-        connect.setOnClickListener(v -> {
-            client.set(new Client(activity));
-            client.get().onSearch(callback);
-        });
-
-        client.get().onSearch(callback);
+        sc.denishik.ru.ledApiBLU.DevicePicker.show(activity, callbackModal::onConnect);
     }
 
     public static void showStartModal(AppCompatActivity activity, LinearLayout blu_err) {
@@ -266,6 +263,22 @@ public class Modals {
         dialog.getWindow().findViewById(R.id.design_bottom_sheet).setBackgroundResource(android.R.color.transparent);
         dialog.show();
         dialog.setCancelable(false);
+        final boolean[] connectionPending = {false};
+        final java.util.function.Consumer<Boolean> setConnectionPending = pending -> {
+            connectionPending[0] = pending;
+            dialog.setCancelable(!pending);
+            dialog.setCanceledOnTouchOutside(!pending);
+            dialog.getBehavior().setDraggable(!pending);
+            dialog.getBehavior().setHideable(!pending);
+            connect.setEnabled(!pending);
+            connect_back.setEnabled(!pending);
+            connect_go.setEnabled(!pending);
+            refresh.setEnabled(!pending);
+            tuyaLogin.setEnabled(!pending);
+            tuyaSettings.setEnabled(!pending);
+            listView1.setEnabled(!pending);
+        };
+
 
         final LinearLayout savedKugooPanel = lay.findViewById(R.id.saved_kugoo_list);
         final TextView kugooStatus = lay.findViewById(R.id.kugoo_connect_status);
@@ -278,7 +291,7 @@ public class Modals {
             kugooContent.setVisibility(kugooMode[0] ? View.VISIBLE : View.GONE);
             tuyaSettings.setVisibility(kugooMode[0] ? View.VISIBLE : View.GONE);
             tuyaLogin.setSelected(kugooMode[0]);
-            ((TextView) lay.findViewById(R.id.title)).setText(kugooMode[0] ? "Kugoo" : "Connect");
+            ((TextView) lay.findViewById(R.id.title)).setText(kugooMode[0] ? "Kugoo" : "Midway");
             if (kugooMode[0]) {
                 base_block.setVisibility(View.VISIBLE);
                 listView1.setVisibility(View.GONE);
@@ -342,6 +355,7 @@ public class Modals {
                                 Intent start = new Intent(activity, ServiceScooter.class);
                                 start.putExtra("command", SCOOTER_CONNECT_COMMAND);
                                 start.putExtra("kugoo_dev_id", profile.optString("devId"));
+                                setConnectionPending.accept(true);
                                 activity.startService(start);
                             });
                         }
@@ -382,6 +396,8 @@ public class Modals {
                 Log.d("onRec", String.valueOf(intent.getAction()));
                 String s = intent.getStringExtra("Status");
                 if (kugooMode[0] && !kugooSelectionPending[0]) return;
+                if (Objects.equals(s, SCOOTER_STATUS_ERROR) || Objects.equals(s, SCOOTER_STATUS_BINDED))
+                    setConnectionPending.accept(false);
                 if (intent.hasExtra("message")) { kugooStatus.setVisibility(View.VISIBLE); kugooStatus.setText(intent.getStringExtra("message")); }
                 if (Objects.equals(s, SCOOTER_STATUS_CONNECTED)) {
                     if (!isShow[0]) {
@@ -430,7 +446,7 @@ public class Modals {
                         @Override
                         public void onGetScooter(ArrayList<Scooter> scooters) {
                             activity.runOnUiThread(() -> {
-                                if (kugooMode[0] || !dialog.isShowing() || connect_block.getVisibility() == View.VISIBLE) return;
+                                if (connectionPending[0] || kugooMode[0] || !dialog.isShowing() || connect_block.getVisibility() == View.VISIBLE) return;
                                 if (scooters.size() > 0) {
                                     empty.setVisibility(View.GONE);
                                     listView1.setVisibility(View.VISIBLE);
@@ -442,6 +458,7 @@ public class Modals {
                                         i.putExtra("uuid", scooter.getUUID());
                                         i.putExtra("address", scooter.getAddress());
                                         i.putExtra("name", scooter.getName());
+                                        setConnectionPending.accept(true);
                                         activity.startService(i);
                                     }));
                                 } else {
@@ -454,7 +471,7 @@ public class Modals {
                         @Override
                         public void onGetError() {
                             activity.runOnUiThread(() -> {
-                                if (kugooMode[0] || !dialog.isShowing()) return;
+                                if (connectionPending[0] || kugooMode[0] || !dialog.isShowing()) return;
                                 blu_err.setVisibility(View.VISIBLE);
                                 dialog.dismiss();
                             });
@@ -497,6 +514,7 @@ public class Modals {
         });
 
         connect.setOnLongClickListener(v -> {
+            if (connectionPending[0]) return true;
             Intent i = new Intent();
             i.setAction(Intent.ACTION_VIEW);
             i.setClass(activity.getApplicationContext(), HomeActivity.class);
@@ -524,7 +542,7 @@ public class Modals {
                 public void onGetScooter(ArrayList<Scooter> scooters) {
                     Log.d("", "onGetScooter: ".concat(String.valueOf(scooters)));
                     activity.runOnUiThread(() -> {
-                        if (kugooMode[0] || !dialog.isShowing() || connect_block.getVisibility() == View.VISIBLE) return;
+                        if (connectionPending[0] || kugooMode[0] || !dialog.isShowing() || connect_block.getVisibility() == View.VISIBLE) return;
                         if (scooters.size() > 0) {
 //                            for (Scooter scooter : scooters) {
 //                                if (scooter.getAddress().contains(activity.getSharedPreferences("login", Activity.MODE_PRIVATE).getString("address", "null"))) {
@@ -551,6 +569,7 @@ public class Modals {
                                  i.putExtra("name", scooter.getName());
                                  Device device = scooter.getDevice();
                                  i.putExtra("name_device", device != null ? device.getName() : scooter.getName());
+                                 setConnectionPending.accept(true);
                                  activity.startService(i);
                              }));
                          } else {
@@ -564,7 +583,7 @@ public class Modals {
                 @Override
                 public void onGetError() {
                     activity.runOnUiThread(() -> {
-                        if (kugooMode[0] || !dialog.isShowing()) return;
+                        if (connectionPending[0] || kugooMode[0] || !dialog.isShowing()) return;
                         blu_err.setVisibility(View.VISIBLE);
                         dialog.dismiss();
                     });
@@ -592,6 +611,7 @@ public class Modals {
                 i.putExtra("uuid", scooter.getUUID());
                 i.putExtra("address", scooter.getAddress());
                 i.putExtra("name", scooter.getName());
+                setConnectionPending.accept(true);
                 activity.startService(i);
                 connect_block.setVisibility(View.GONE);
                 connect.setVisibility(View.GONE);
@@ -615,7 +635,7 @@ public class Modals {
                     public void onGetScooter(ArrayList<Scooter> scooters) {
                         Log.d("", "onGetScooter: ".concat(String.valueOf(scooters)));
                         activity.runOnUiThread(() -> {
-                            if (kugooMode[0] || !dialog.isShowing() || connect_block.getVisibility() == View.VISIBLE) return;
+                            if (connectionPending[0] || kugooMode[0] || !dialog.isShowing() || connect_block.getVisibility() == View.VISIBLE) return;
                             if (scooters.size() > 0) {
                                 empty.setVisibility(View.GONE);
                                 loading.setVisibility(View.GONE);
@@ -628,6 +648,7 @@ public class Modals {
                                     i.putExtra("uuid", scooter.getUUID());
                                     i.putExtra("address", scooter.getAddress());
                                     i.putExtra("name", scooter.getName());
+                                    setConnectionPending.accept(true);
                                     activity.startService(i);
                                 }));
                             } else {
@@ -641,7 +662,7 @@ public class Modals {
                     @Override
                     public void onGetError() {
                         activity.runOnUiThread(() -> {
-                            if (kugooMode[0] || !dialog.isShowing()) return;
+                            if (connectionPending[0] || kugooMode[0] || !dialog.isShowing()) return;
                             blu_err.setVisibility(View.VISIBLE);
                             dialog.dismiss();
                         });
@@ -655,7 +676,7 @@ public class Modals {
             public void onGetScooter(ArrayList<Scooter> scooters) {
                 Log.d("", "onGetScooter: ".concat(String.valueOf(scooters)));
                 activity.runOnUiThread(() -> {
-                    if (kugooMode[0] || !dialog.isShowing() || connect_block.getVisibility() == View.VISIBLE) return;
+                    if (connectionPending[0] || kugooMode[0] || !dialog.isShowing() || connect_block.getVisibility() == View.VISIBLE) return;
                     if (scooters.size() > 0) {
 //                        for (Scooter scooter : scooters) {
 //                            if (scooter.getAddress().contains(activity.getSharedPreferences("login", Activity.MODE_PRIVATE).getString("address", "null"))) {
@@ -679,6 +700,7 @@ public class Modals {
                             i.putExtra("uuid", scooter.getUUID());
                             i.putExtra("address", scooter.getAddress());
                             i.putExtra("name", scooter.getName());
+                            setConnectionPending.accept(true);
                             activity.startService(i);
                         }));
                     } else {
@@ -692,7 +714,7 @@ public class Modals {
             @Override
             public void onGetError() {
                 activity.runOnUiThread(() -> {
-                    if (kugooMode[0] || !dialog.isShowing()) return;
+                    if (connectionPending[0] || kugooMode[0] || !dialog.isShowing()) return;
                     blu_err.setVisibility(View.VISIBLE);
                     dialog.dismiss();
                 });

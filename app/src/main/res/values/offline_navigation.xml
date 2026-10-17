@@ -1,0 +1,4 @@
+<resources>
+    <string name="offline_open_home">Перейти в главное меню</string>
+    <string name="offline_open_home_error">Не удалось открыть главное меню. Попробуйте ещё раз.</string>
+</resources>

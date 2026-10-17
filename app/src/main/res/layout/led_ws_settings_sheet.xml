@@ -1,0 +1,25 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:background="@drawable/bg_connect_sheet" android:clipToOutline="true" android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="24dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="8dp">
+            <TextView style="@style/OfflineTitle" android:layout_width="0dp" android:layout_weight="1" android:layout_marginEnd="16dp" android:text="@string/led_settings_title" android:textSize="20sp"/>
+            <ImageView android:id="@+id/led_info" android:layout_width="48dp" android:layout_height="48dp" android:padding="12dp" android:src="@drawable/ic_led_info" app:tint="@color/connect_action_text" android:background="@drawable/bg_connect_action" android:contentDescription="@string/led_info_title" android:clickable="true" android:focusable="true"/>
+        </LinearLayout>
+        <TextView style="@style/OfflineBody" android:text="@string/led_settings_intro" android:layout_marginBottom="16dp"/>
+        <com.google.android.material.textfield.TextInputLayout android:id="@+id/ws_host_layout" style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="@string/led_settings_host" app:helperText="@string/led_settings_host_hint">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/ws_host_input" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="textUri" android:singleLine="true" android:imeOptions="actionNext"/>
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout android:id="@+id/ws_port_layout" style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:hint="@string/led_settings_port">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/ws_port_input" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:singleLine="true" android:maxLength="5" android:imeOptions="actionNext"/>
+        </com.google.android.material.textfield.TextInputLayout>
+        <com.google.android.material.textfield.TextInputLayout android:id="@+id/ws_board_layout" style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:hint="@string/led_settings_board" app:helperText="@string/led_settings_board_hint">
+            <com.google.android.material.textfield.TextInputEditText android:id="@+id/ws_board_input" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="textVisiblePassword" android:singleLine="true" android:maxLength="64" android:imeOptions="actionDone"/>
+        </com.google.android.material.textfield.TextInputLayout>
+        <TextView android:id="@+id/ws_target_speed_label" style="@style/OfflineTitle" android:layout_marginTop="20dp"/>
+        <com.google.android.material.slider.Slider android:id="@+id/ws_target_speed" android:layout_width="match_parent" android:layout_height="wrap_content" android:valueFrom="30" android:valueTo="150" android:stepSize="1" android:value="30" android:contentDescription="@string/led_settings_speed_title"/>
+        <TextView style="@style/OfflineBody" android:text="@string/led_settings_speed_hint"/>
+        <com.google.android.material.button.MaterialButton android:id="@+id/ws_save" style="@style/OfflineButton" android:text="@string/led_settings_save" android:layout_marginTop="20dp"/>
+        <com.google.android.material.button.MaterialButton android:id="@+id/ws_cancel" style="@style/OfflineSecondary" android:text="@string/led_settings_cancel"/>
+    </LinearLayout>
+</ScrollView>

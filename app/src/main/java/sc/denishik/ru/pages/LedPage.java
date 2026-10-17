@@ -1,198 +1,85 @@
 package sc.denishik.ru.pages;
 
-import static sc.denishik.ru.ledApiBLU.Config.setDefaultClient;
-import static sc.denishik.ru.other.Config.SCOOTER_LED;
-import static sc.denishik.ru.other.Config.SCOOTER_LED_CONNECT;
-import static sc.denishik.ru.other.Config.SCOOTER_LED_DISCONNECT;
-import static sc.denishik.ru.other.Config.SCOOTER_LED_ERROR;
-import static sc.denishik.ru.other.Config.SCOOTER_LED_RECONNECT;
-import static sc.denishik.ru.other.Config.SCOOTER_LED_TEXT;
-import static sc.denishik.ru.other.Modals.showModalLedsBluetooth;
-
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.graphics.Color;
+import android.content.*;
 import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.ImageView;
-import android.widget.ListView;
-import android.widget.TextView;
-
+import android.view.*;
+import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager.widget.ViewPager;
-
 import sc.denishik.ru.R;
 import sc.denishik.ru.ServiceScooter;
 import sc.denishik.ru.ledApiBLU.Client;
+import sc.denishik.ru.ledApiBLU.Config;
 import sc.denishik.ru.ledApiWS.LedInfo;
-import sc.denishik.ru.other.Adapters;
-import sc.denishik.ru.other.CustomArrayList;
-import sc.denishik.ru.other.Modals;
+import sc.denishik.ru.other.*;
+import static sc.denishik.ru.other.Config.*;
 
 public class LedPage extends Fragment {
-
-    private TextView ws_url;
-    private float speed_old = 0;
-    private boolean isPArking_old = false;
-    private ImageView back;
-    private ImageView refresh;
-    private ImageView bluetooth;
-    private boolean isConnect = false;
-    private boolean isSend = false;
-    private AppCompatActivity activity;
-    private CustomArrayList<LedInfo> ledsList;
+    private TextView url, bleStatus;
     private ListView list;
-    private BroadcastReceiver mMessageReceiver;
+    private ImageView bluetooth, refresh;
+    private String wsAddress = "ws://";
+    private final CustomArrayList<LedInfo> log = new CustomArrayList<>();
     private Adapters.ListviewLedAdapter adapter;
-    private String TAG = "LedPage";
-
-    private Client clientBL;
-
-    public LedPage(AppCompatActivity activity) {
-        this.activity = activity;
-        // Required empty public constructor
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        ledsList = new CustomArrayList<>();
-        adapter = new Adapters.ListviewLedAdapter(ledsList, activity);
-
-        mMessageReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                if (intent.getAction() != null) {
-                    String s = intent.getStringExtra("Status");
-                    String url = intent.getStringExtra("url");
-                    boolean bl = intent.getBooleanExtra("bl", false);
-
-                    bluetooth.setBackgroundColor(clientBL != null ? Color.parseColor("#FFA7E6A9") : activity.getResources().getColor(R.color.colorControlHighlight  ));
-
-                    if (activity != null) {
-                        activity.runOnUiThread(() -> {
-                            ws_url.setText(url);
-                        });
-                    }
-                    switch (s) {
-                        case SCOOTER_LED_CONNECT:
-                            if (activity != null) {
-                                activity.runOnUiThread(() -> {
-                                    ledsList.add(new LedInfo("Connected", true));
-                                    if (adapter != null) {
-                                        adapter.notifyDataSetChanged();
-                                    }
-                                });
-                            }
-                            break;
-                        case SCOOTER_LED_DISCONNECT:
-                            if (activity != null) {
-                                activity.runOnUiThread(() -> {
-                                    ledsList.add(new LedInfo("Disconected", false));
-                                    if (adapter != null) {
-                                        adapter.notifyDataSetChanged();
-                                    }
-                                });
-                            }
-                            break;
-                        case SCOOTER_LED_TEXT:
-                            if (activity != null) {
-                                String text = intent.getStringExtra("text");
-                                activity.runOnUiThread(() -> {
-                                    ledsList.add(new LedInfo(String.valueOf(text), true));
-                                    if (adapter != null) {
-                                        adapter.notifyDataSetChanged();
-                                    }
-                                });
-                            }
-                        case SCOOTER_LED_ERROR:
-                            if (activity != null) {
-                                String text = intent.getStringExtra("text");
-                                activity.runOnUiThread(() -> {
-                                    ledsList.add(new LedInfo(String.valueOf(text), false));
-                                    if (adapter != null) {
-                                        adapter.notifyDataSetChanged();
-                                    }
-                                });
-                            }
-                    }
+    public LedPage() { }
+    public LedPage(AppCompatActivity activity) { }
+    private final BroadcastReceiver receiver = new BroadcastReceiver() {
+        @Override public void onReceive(Context context, Intent intent) {
+            if (SCOOTER_LED.equals(intent.getAction())) {
+                String address = intent.getStringExtra("url");
+                if (address != null) wsAddress = address;
+                String status = intent.getStringExtra("Status");
+                String text = intent.getStringExtra("text");
+                if (status != null) {
+                    log.add(new LedInfo(text == null ? status : text,
+                            SCOOTER_LED_CONNECT.equals(status) || SCOOTER_LED_TEXT.equals(status)));
+                    if (adapter != null) adapter.notifyDataSetChanged();
                 }
             }
-        };
-        adapter = new Adapters.ListviewLedAdapter(ledsList, activity);
-        activity.registerReceiver(mMessageReceiver, new IntentFilter(SCOOTER_LED));
-    }
-
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+            render();
+        }
+    };
+    @Override public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle state) {
         View view = inflater.inflate(R.layout.fragment_led_page, container, false);
-        ViewPager viewPager = activity.findViewById(R.id.viewpage);;
-
-        ws_url = view.findViewById(R.id.ws_url);
-        back = view.findViewById(R.id.back);
+        AppCompatActivity activity = (AppCompatActivity) requireActivity();
+        url = view.findViewById(R.id.ws_url); bleStatus = view.findViewById(R.id.ble_status);
+        list = view.findViewById(R.id.list); bluetooth = view.findViewById(R.id.bluetooth);
         refresh = view.findViewById(R.id.refresh);
-        bluetooth = view.findViewById(R.id.bluetooth);
-        list = view.findViewById(R.id.list);
-        list.setAdapter(adapter);
-
-        back.setOnClickListener(v -> {
-            viewPager.setCurrentItem(0);
-        });
-
+        adapter = new Adapters.ListviewLedAdapter(log, activity); list.setAdapter(adapter);
+        sc.denishik.ru.ledApiWS.Config.load(activity);
+        wsAddress = "ws://" + sc.denishik.ru.ledApiWS.Config.IP_HOST_DEFAULT + ":"
+                + sc.denishik.ru.ledApiWS.Config.PORT_CLIENT_DEFAULT + "/hub/"
+                + sc.denishik.ru.ledApiWS.Config.ID_BOARD;
+        view.findViewById(R.id.back).setOnClickListener(v -> ((ViewPager) activity.findViewById(R.id.viewpage)).setCurrentItem(0));
+        view.findViewById(R.id.led_settings).setOnClickListener(v -> Modals.SettingsWSModal(activity));
         refresh.setOnClickListener(v -> {
-            if (getActivity() != null) {
-                ledsList = new CustomArrayList<>();
-                adapter.notifyDataSetChanged();
-                Intent i = new Intent(getContext(), ServiceScooter.class);
-                i.putExtra("command", SCOOTER_LED_RECONNECT);
-                getActivity().startService(i);
-            }
+            log.clear(); adapter.notifyDataSetChanged();
+            activity.startService(new Intent(activity, ServiceScooter.class)
+                    .putExtra("command", SCOOTER_LED_RECONNECT)
+                    .putExtra("ws_retry_enabled", true));
         });
-
-        bluetooth.setOnClickListener(v -> {
-            if (clientBL != null) {
-                clientBL.unSelectDevice();
-                clientBL = null;
-                setDefaultClient(null);
-            } else {
-                showModalLedsBluetooth(activity, client -> {
-                    clientBL = client;
-                });
-            }
-        });
-
-        return view;
+        bluetooth.setOnClickListener(v -> sc.denishik.ru.ledApiBLU.DevicesSheet.show(activity));
+        render(); return view;
     }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        try {
-            activity.unregisterReceiver(mMessageReceiver);
-        } catch (Exception ignored) {
-
-        }
+    private void render() {
+        if (url == null) return;
+        sc.denishik.ru.ledApiBLU.LedConnections connections = sc.denishik.ru.ledApiBLU.LedConnections.get(requireContext());
+        boolean ble = !connections.entries().isEmpty();
+        url.setText(ble ? getString(R.string.led_ble_pairing) : wsAddress);
+        list.setVisibility(ble ? View.GONE : View.VISIBLE);
+        bleStatus.setVisibility(ble ? View.VISIBLE : View.GONE);
+        ((View) refresh.getParent()).setVisibility(ble ? View.GONE : View.VISIBLE);
+        bluetooth.setAlpha(ble ? 1f : 0.6f);
+        if (ble) bleStatus.setText(connections.summary());
     }
-
-    @Override
-    public void setMenuVisibility(boolean isvisible) {
-        super.setMenuVisibility(isvisible);
-        if (isvisible) {
-            activity.registerReceiver(mMessageReceiver, new IntentFilter(SCOOTER_LED));
-        } else {
-            if (mMessageReceiver != null) {
-                try {
-                    activity.unregisterReceiver(mMessageReceiver);
-                } catch (Exception ignored) {
-
-                }
-            }
-        }
+    @Override public void onStart() {
+        super.onStart();
+        IntentFilter filter = new IntentFilter(SCOOTER_LED); filter.addAction(Client.STATE_CHANGED);
+        if (android.os.Build.VERSION.SDK_INT >= 33) requireContext().registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        else requireContext().registerReceiver(receiver, filter);
+        render();
     }
+    @Override public void onStop() { requireContext().unregisterReceiver(receiver); super.onStop(); }
+    @Override public void onDestroyView() { url = null; bleStatus = null; list = null; adapter = null; super.onDestroyView(); }
 }

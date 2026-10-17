@@ -35,8 +35,8 @@ android {
 		applicationId "sc.denishik.ru"
 		minSdkVersion 23
 		targetSdkVersion 33
-		versionCode 6
-		versionName "1.0.4_dev"
+		versionCode 7
+		versionName "1.0.5"
 
 		// Use generic Tuya keys (tuya.appKey/tuya.appSecret) for package sc.denishik.ru.
 		// (Kuggo OEM keys are typically bound to a different package/signature.)

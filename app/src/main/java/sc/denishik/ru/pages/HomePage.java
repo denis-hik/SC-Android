@@ -54,6 +54,24 @@ public class HomePage extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_home_page, container, false);
+        View authorLink = view.findViewById(R.id.kurwa_author_link);
+        if ("sc.kurwa.ru".equals(sc.denishik.ru.BuildConfig.APPLICATION_ID)) {
+            // This asset is supplied only by build-kurwa.ps1, not the regular APK.
+            int authorImage = getResources().getIdentifier("kurwa_author", "drawable", requireContext().getPackageName());
+            if (authorImage != 0) {
+                ((android.widget.ImageView) view.findViewById(R.id.kurwa_author_image)).setImageResource(authorImage);
+                authorLink.setVisibility(View.VISIBLE);
+                authorLink.setOnClickListener(v -> {
+                    try {
+                        startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW,
+                                android.net.Uri.parse("https://www.tiktok.com/@f3proma_ai")));
+                    } catch (android.content.ActivityNotFoundException | SecurityException error) {
+                        android.widget.Toast.makeText(requireContext(), R.string.author_link_unavailable,
+                                android.widget.Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+        }
         ViewPager viewPager = getActivity().findViewById(R.id.viewpage);;
 
         remote = view.findViewById(R.id.remote);

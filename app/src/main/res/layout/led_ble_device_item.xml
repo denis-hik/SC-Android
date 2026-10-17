@@ -1,0 +1,17 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp" android:padding="12dp"
+    android:orientation="horizontal" android:gravity="center_vertical"
+    android:background="@drawable/bg_connect_card">
+    <TextView android:id="@+id/ble_device_details"
+        android:layout_width="0dp" android:layout_height="wrap_content"
+        android:layout_weight="1" android:layout_marginEnd="12dp"
+        android:textSize="15sp" android:textColor="@color/app_text"/>
+    <androidx.appcompat.widget.AppCompatImageButton android:id="@+id/ble_device_forget"
+        android:layout_width="48dp" android:layout_height="48dp"
+        android:padding="12dp" android:src="@drawable/ic_led_remove"
+        android:background="@drawable/bg_connect_action"
+        app:tint="@color/connect_action_text"
+        android:contentDescription="@string/led_ble_forget"/>
+</LinearLayout>

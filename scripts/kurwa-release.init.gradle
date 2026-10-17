@@ -1,0 +1,17 @@
+allprojects { p ->
+    p.afterEvaluate {
+        if (p.path == ':app') {
+            // Optional custom-domain config from the SDK AAR is encrypted with
+            // the original applicationId as AES-GCM associated data. It cannot
+            // be reused by sc.kurwa.ru; let the SDK use its default domains.
+            p.android.aaptOptions.ignoreAssetsPattern =
+                    (p.android.aaptOptions.ignoreAssetsPattern ?: '') + ':t_cdc.tcfg'
+            p.android.buildTypes.release {
+                debuggable false
+                signingConfig p.android.signingConfigs.debug
+                buildConfigField 'String', 'TUYA_APP_Login', '\"\"'
+                buildConfigField 'String', 'TUYA_APP_Password', '\"\"'
+            }
+        }
+    }
+}

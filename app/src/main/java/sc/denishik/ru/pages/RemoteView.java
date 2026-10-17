@@ -2,7 +2,6 @@ package sc.denishik.ru.pages;
 
 import static sc.denishik.ru.midwayApi.base.KeysBaseParam.LIGHT_KEY;
 import static sc.denishik.ru.midwayApi.base.KeysBaseParam.LOCK_KEY;
-import static sc.denishik.ru.midwayApi.base.KeysBaseParam.MAX_KEY;
 import static sc.denishik.ru.midwayApi.base.KeysBaseParam.MODE_KEY;
 import static sc.denishik.ru.other.Config.SCOOTER_ADV_PARAMS_DISABLE;
 import static sc.denishik.ru.other.Config.SCOOTER_ADV_PARAMS_SHOW;
@@ -51,22 +50,19 @@ public class RemoteView extends Fragment {
     private CardView light;
     private BaseParams params;
     private boolean kugooDevice;
+    private boolean midwayConnected;
     private boolean noParking;
     private boolean canToggleParking;
     private boolean canSetNoParking;
-    private View speedControls;
     private View gearControls;
     private ImageView parking_image;
     private ImageView light_image;
     private Button back;
-    private Button max20;
-    private Button max30;
     private Button gear0;
     private Button gear1;
     private Button gear2;
     private Button showAdvParams;
     private Button disableAdvParams;
-    private TextView max_text;
     private BroadcastReceiver mMessageReceiver;
 
     public RemoteView() {
@@ -89,20 +85,25 @@ public class RemoteView extends Fragment {
                     android.widget.Toast.makeText(context, intent.getStringExtra("command_error"), android.widget.Toast.LENGTH_SHORT).show();
                     return;
                 }
+                if (sc.denishik.ru.other.Config.SCOOTER_CONNECT_COMMAND.equals(intent.getAction())
+                        || sc.denishik.ru.other.Config.SCOOTER_ERROR_CONNECT.equals(intent.getAction())) {
+                    midwayConnected = false;
+                    gearControls.setVisibility(View.GONE);
+                    return;
+                }
+                midwayConnected = "midway".equals(intent.getStringExtra("source"))
+                        && intent.getBooleanExtra("telemetry_online", false);
                 kugooDevice = "kugoo".equals(intent.getStringExtra("source"));
                 noParking = kugooDevice && intent.getBooleanExtra("no_parking", false);
                 canToggleParking = intent.getBooleanExtra("can_toggle_parking", false);
                 canSetNoParking = intent.getBooleanExtra("can_set_no_parking", false);
                 boolean controlsEnabled = !kugooDevice;
-                speedControls.setVisibility(kugooDevice ? View.GONE : View.VISIBLE);
-                gearControls.setVisibility(kugooDevice ? View.GONE : View.VISIBLE);
+                gearControls.setVisibility(midwayConnected ? View.VISIBLE : View.GONE);
                 parking.setEnabled(controlsEnabled || canToggleParking || canSetNoParking || noParking);
                 light.setEnabled(controlsEnabled || intent.getBooleanExtra("can_toggle_headlight", false));
-                max20.setEnabled(controlsEnabled);
-                max30.setEnabled(controlsEnabled);
-                gear0.setEnabled(controlsEnabled);
-                gear1.setEnabled(controlsEnabled);
-                gear2.setEnabled(controlsEnabled);
+                gear0.setEnabled(midwayConnected);
+                gear1.setEnabled(midwayConnected);
+                gear2.setEnabled(midwayConnected);
                 Log.d("onRec", String.valueOf(intent.getAction()));
                 HashMap<String, Object> temp = (HashMap<String, Object>) intent.getSerializableExtra("data");
                 if (temp != null) {
@@ -115,7 +116,6 @@ public class RemoteView extends Fragment {
                     params = new BaseParams(temp);
                     if (isReDraw) {
                         light_image.setImageDrawable(getActivity().getDrawable(params.getHeadLightSw() ? R.drawable.headlight : R.drawable.headlight_off));
-                        max_text.setText(String.valueOf(params.getLimitMode3()));
                     }
                     renderParking();
                 }
@@ -128,10 +128,9 @@ public class RemoteView extends Fragment {
                              Bundle savedInstanceState) {
         View _view = inflater.inflate(R.layout.fragment_remote_view, container, false);
 
-        speedControls = _view.findViewById(R.id.speed_controls);
+        midwayConnected = false;
         gearControls = _view.findViewById(R.id.gear_controls);
-        speedControls.setVisibility(kugooDevice ? View.GONE : View.VISIBLE);
-        gearControls.setVisibility(kugooDevice ? View.GONE : View.VISIBLE);
+        gearControls.setVisibility(midwayConnected ? View.VISIBLE : View.GONE);
 
         parking = _view.findViewById(R.id.parking);
         parking.setEnabled(false);
@@ -139,10 +138,7 @@ public class RemoteView extends Fragment {
         light_image = _view.findViewById(R.id.light_image);
         light = _view.findViewById(R.id.light);
         light.setEnabled(false);
-        max_text = _view.findViewById(R.id.max_text);
         back = _view.findViewById(R.id.back);
-        max20 = _view.findViewById(R.id.max20);
-        max30 = _view.findViewById(R.id.max30);
         gear0 = _view.findViewById(R.id.gear0);
         gear1 = _view.findViewById(R.id.gear1);
         gear2 = _view.findViewById(R.id.gear2);
@@ -177,12 +173,6 @@ public class RemoteView extends Fragment {
         back.setOnClickListener(v -> {
             ViewPager viewPager = getActivity().findViewById(R.id.viewpage);;
             viewPager.setCurrentItem(0);
-        });
-        max20.setOnClickListener(v -> {
-            handleMaxSpeed((int) 30);
-        });
-        max30.setOnClickListener(v -> {
-            handleMaxSpeed((int) 40);
         });
         gear0.setOnClickListener(v -> {
             handleModeGear(0);
@@ -225,15 +215,8 @@ public class RemoteView extends Fragment {
         i.putExtra("value",  true);
         getActivity().startService(i);
     }
-    private void handleMaxSpeed(int speed) {
-        Intent i = new Intent(getContext(), ServiceScooter.class);
-        i.putExtra("command", SCOOTER_SEND_DATA_PARAMS_COMMAND);
-        // You can also include some extra data.
-        i.putExtra("key", MAX_KEY);
-        i.putExtra("value",  speed);
-        getActivity().startService(i);
-    }
     private void handleModeGear(int mode) {
+        if (!midwayConnected) return;
         Intent i = new Intent(getContext(), ServiceScooter.class);
         i.putExtra("command", SCOOTER_SEND_DATA_PARAMS_COMMAND);
         // You can also include some extra data.
@@ -253,7 +236,12 @@ public class RemoteView extends Fragment {
         super.setMenuVisibility(isvisible);
         if (isvisible) {
 
-            getActivity().registerReceiver(mMessageReceiver, new IntentFilter(SCOOTER_GET_DATA_PARAMS_COMMAND));
+            midwayConnected = false;
+            if (gearControls != null) gearControls.setVisibility(View.GONE);
+            IntentFilter filter = new IntentFilter(SCOOTER_GET_DATA_PARAMS_COMMAND);
+            filter.addAction(sc.denishik.ru.other.Config.SCOOTER_CONNECT_COMMAND);
+            filter.addAction(sc.denishik.ru.other.Config.SCOOTER_ERROR_CONNECT);
+            getActivity().registerReceiver(mMessageReceiver, filter);
             Intent snapshot = new Intent(getActivity(), ServiceScooter.class);
             snapshot.putExtra("command", sc.denishik.ru.other.Config.SCOOTER_GET_DATA_NAME_COMMAND);
             getActivity().startService(snapshot);

@@ -1,7 +1,6 @@
 package sc.denishik.ru;
 
 import static sc.denishik.ru.kuggoApi.Config.NAME_SCOOTER_KUGOO_BLU;
-import static sc.denishik.ru.ledApiBLU.Config.getDefaultClient;
 import static sc.denishik.ru.midwayApi.ScootersApi.connectScooter;
 import static sc.denishik.ru.midwayApi.base.KeysBaseParam.LIGHT_KEY;
 import static sc.denishik.ru.midwayApi.base.KeysBaseParam.LOCK_KEY;
@@ -17,6 +16,7 @@ import static sc.denishik.ru.other.Config.SCOOTER_GET_DATA_PARAMS_COMMAND;
 import static sc.denishik.ru.other.Config.SCOOTER_LED;
 import static sc.denishik.ru.other.Config.SCOOTER_LED_CONNECT;
 import static sc.denishik.ru.other.Config.SCOOTER_LED_DISCONNECT;
+import static sc.denishik.ru.other.Config.SCOOTER_LED_ERROR;
 import static sc.denishik.ru.other.Config.SCOOTER_LED_RECONNECT;
 import static sc.denishik.ru.other.Config.SCOOTER_LED_TEXT;
 import static sc.denishik.ru.other.Config.SCOOTER_SEND_DATA_PARAMS_COMMAND;
@@ -133,6 +133,7 @@ public class ServiceScooter extends Service implements EventObserver {
     private static byte[] paramsBuf = new byte[1024];
     private boolean isSendNotif = false;
     private Client clientWS;
+    private volatile int wsGeneration;
     private Runnable timeoutRunnable;
     private Runnable kugooKeepAliveRunnable;
     private boolean kugooKeepAliveScheduled = false;
@@ -196,6 +197,7 @@ public class ServiceScooter extends Service implements EventObserver {
         notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         getParamsList();
         connectWS();
+        sc.denishik.ru.ledApiBLU.LedConnections.get(this).start();
     }
 
     private void showNotif() {
@@ -229,7 +231,7 @@ public class ServiceScooter extends Service implements EventObserver {
 
             switch (command) {
                 case SCOOTER_LED_RECONNECT:
-                    connectWS();
+                    connectWS(intent.getBooleanExtra("ws_retry_enabled", false));
                     break;
 
                 case SCOOTER_CONNECT_COMMAND:
@@ -337,7 +339,9 @@ public class ServiceScooter extends Service implements EventObserver {
         }
         Log.d(TAG, "onDestroy");
         if (connection != null) connection.disconnect();
+        wsGeneration++;
         if (clientWS != null) clientWS.stop();
+        sc.denishik.ru.ledApiBLU.LedConnections.get(this).stop();
         super.onDestroy();
     }
 
@@ -346,31 +350,34 @@ public class ServiceScooter extends Service implements EventObserver {
     }
 
     private void sendLed() {
+        if (params == null) return;
         if (clientWS != null) {
             if (clientWS.isConnected()) {
-                float speed = params.getSpeed();
-                if (speed > 30) {
-                    speed = 29;
-                }
-                if (params.getLockSw()) {
-                    speed = 0;
-                }
-                clientWS.sendWS("_n6", String.valueOf(((int) speed) * 8.5));
+                clientWS.sendWS("_n6", String.valueOf(sc.denishik.ru.ledApiWS.Config
+                        .ledValue(params.getSpeed(), params.getLockSw())));
             }
         }
-        if (getDefaultClient() != null) {
-            sc.denishik.ru.ledApiBLU.Client client = getDefaultClient();
-            client.sendCommand(Commands.makePowerCommand(true));
-        }
+        sc.denishik.ru.ledApiBLU.LedConnections.get(this).sendSpeed(params.getSpeed(), params.getLockSw());
     }
     private void connectWS() {
+        connectWS(false);
+    }
+
+    private void connectWS(boolean retryEnabled) {
+        final int generation = ++wsGeneration;
+        if (clientWS != null) clientWS.stop();
+        sc.denishik.ru.ledApiWS.Config.load(this);
+        final String address = "ws://" + sc.denishik.ru.ledApiWS.Config.IP_HOST_DEFAULT + ":"
+                + sc.denishik.ru.ledApiWS.Config.PORT_CLIENT_DEFAULT + "/hub/"
+                + sc.denishik.ru.ledApiWS.Config.ID_BOARD;
         clientWS = new Client(new Client.CallBack() {
             @Override
             public void onOpen() {
+                if (generation != wsGeneration) return;
                 Intent intent = new Intent(SCOOTER_LED);
                 intent.putExtra("Status", SCOOTER_LED_CONNECT);
-                intent.putExtra("url", clientWS.getUrl());
-                intent.putExtra("bl", getDefaultClient() != null);
+                intent.putExtra("url", address);
+                intent.putExtra("bl", sc.denishik.ru.ledApiBLU.LedConnections.get(ServiceScooter.this).connectedCount() > 0);
                 sendBroadcast(intent);
             }
 
@@ -381,34 +388,37 @@ public class ServiceScooter extends Service implements EventObserver {
 
             @Override
             public void onGetText(String s) {
+                if (generation != wsGeneration) return;
                 Intent intent = new Intent(SCOOTER_LED);
                 intent.putExtra("Status", SCOOTER_LED_TEXT);
                 intent.putExtra("text", s);
-                intent.putExtra("url", clientWS.getUrl());
-                intent.putExtra("bl", getDefaultClient() != null);
+                intent.putExtra("url", address);
+                intent.putExtra("bl", sc.denishik.ru.ledApiBLU.LedConnections.get(ServiceScooter.this).connectedCount() > 0);
                 sendBroadcast(intent);
             }
 
             @Override
             public void onError(String err) {
+                if (generation != wsGeneration) return;
                 Intent intent = new Intent(SCOOTER_LED);
-                intent.putExtra("Status", SCOOTER_LED_TEXT);
+                intent.putExtra("Status", SCOOTER_LED_ERROR);
                 intent.putExtra("text", err);
-                intent.putExtra("url", clientWS.getUrl());
-                intent.putExtra("bl", getDefaultClient() != null);
+                intent.putExtra("url", address);
+                intent.putExtra("bl", sc.denishik.ru.ledApiBLU.LedConnections.get(ServiceScooter.this).connectedCount() > 0);
                 sendBroadcast(intent);
             }
 
             @Override
             public void onStop() {
+                if (generation != wsGeneration) return;
                 Intent intent = new Intent(SCOOTER_LED);
                 intent.putExtra("Status", SCOOTER_LED_DISCONNECT);
-                intent.putExtra("url", clientWS.getUrl());
-                intent.putExtra("bl", getDefaultClient() != null);
+                intent.putExtra("url", address);
+                intent.putExtra("bl", sc.denishik.ru.ledApiBLU.LedConnections.get(ServiceScooter.this).connectedCount() > 0);
                 sendBroadcast(intent);
-                clientWS = null;
+
             }
-        });
+        }, retryEnabled);
     }
 
     @Override
@@ -714,6 +724,7 @@ public class ServiceScooter extends Service implements EventObserver {
                             if (values.opt("switch_led") instanceof Boolean) params.setHeadLightSw(values.optBoolean("switch_led"));
                             if (values.opt("level") instanceof String) params.setLockSw("level_1".equals(values.optString("level")));
                             if (pendingParking != null && pendingParking.equals(values.optString("level"))) clearPendingParking();
+                            sendLed();
                             enforceNoParking();
                             String lightId = kugooTelemetry.headlightDpId();
                             if (pendingHeadlight != null && lightId != null
@@ -1308,6 +1319,8 @@ public class ServiceScooter extends Service implements EventObserver {
             LogUtils.d("baseParams> " + params.toString());
             sendLed();
             Intent intent = new Intent(SCOOTER_GET_DATA_PARAMS_COMMAND);
+            intent.putExtra("source", "midway");
+            intent.putExtra("telemetry_online", connection != null && connection.getDevice().isConnected());
             intent.putExtra("data", params.toObject());
             sendBroadcast(intent);
         }

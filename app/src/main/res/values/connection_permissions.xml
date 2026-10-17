@@ -1,0 +1,17 @@
+<resources>
+    <string name="permission_title">Get ready to connect</string>
+    <string name="permission_intro">Allow access to find your scooter and receive ride data.</string>
+    <string name="permission_bluetooth">Bluetooth · Nearby devices</string>
+    <string name="permission_bluetooth_body">Find and connect to your scooter and Bluetooth LED lights.</string>
+    <string name="permission_location">Precise location</string>
+    <string name="permission_location_body">Required by the Bluetooth scanner. Select precise location and allow access while using the app.</string>
+    <string name="permission_granted">✓ Access granted</string>
+    <string name="permission_needed">Permission required</string>
+    <string name="permission_maps_body">Location is also used to show your position and routes on the map. You can hide the map from the main menu.</string>
+    <string name="permission_system_hint">Android will ask for permission next. Background location access is not requested here.</string>
+    <string name="permission_settings_hint">Android no longer shows one of the permission requests. Open Permissions in the app settings, allow access, then return here.</string>
+    <string name="permission_allow">Allow access</string>
+    <string name="permission_settings">Open settings</string>
+    <string name="permission_continue">Continue</string>
+    <string name="permission_later">Exit — set up later</string>
+</resources>

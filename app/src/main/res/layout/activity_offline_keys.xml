@@ -12,11 +12,11 @@
                     <TextView style="@style/OfflineBody" android:text="@string/offline_empty_hint" android:id="@+id/offline_profile_hint"/>
                     <TextView style="@style/OfflineBody" android:text="@string/offline_idle" android:id="@+id/offline_connection_state" android:textStyle="bold" android:accessibilityLiveRegion="polite"/>
                     <com.google.android.material.button.MaterialButton android:id="@+id/connect_kugoo_offline" style="@style/OfflineButton" android:text="@string/offline_connect"/>
+А сможеш как                    <com.google.android.material.button.MaterialButton android:id="@+id/offline_open_home" style="@style/OfflineButton" android:text="@string/offline_open_home" android:visibility="gone"/>
                     <com.google.android.material.button.MaterialButton android:id="@+id/disconnect_kugoo_offline" style="@style/OfflineSecondary" android:text="@string/offline_disconnect"/>
                     <com.google.android.material.button.MaterialButton android:id="@+id/offline_choose_profile" style="@style/OfflineSecondary" android:text="@string/offline_choose"/>
                 </LinearLayout>
             </RelativeLayout>
-            <TextView style="@style/OfflineBody" android:text="@string/offline_data_empty" android:id="@+id/offline_status" android:accessibilityLiveRegion="polite"/>
             <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -47,11 +47,11 @@
                     <TextView style="@style/OfflineBody" android:text="@string/offline_add_hint"/>
                     <com.google.android.material.button.MaterialButton android:id="@+id/go" style="@style/OfflineButton" android:text="@string/offline_root"/>
                     <TextView style="@style/OfflineBody" android:text="@string/offline_root_hint"/>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/kugoo_authorize" style="@style/OfflineSecondary" android:text="@string/kugoo_auth_title"/>
                     <com.google.android.material.button.MaterialButton android:id="@+id/import_kugoo_file" style="@style/OfflineSecondary" android:text="@string/offline_file"/>
-                    <TextView style="@style/OfflineBody" android:text="@string/offline_file_hint"/>
                 </LinearLayout>
             </RelativeLayout>
-            <LinearLayout style="@style/OfflinePanel">
+            <LinearLayout android:id="@+id/offline_transfer_panel" style="@style/OfflinePanel" android:visibility="gone">
                 <TextView style="@style/OfflineTitle" android:text="@string/offline_transfer"/>
                 <TextView style="@style/OfflineBody" android:text="@string/offline_export_hint"/>
                 <com.google.android.material.button.MaterialButton android:id="@+id/export_kugoo_file" style="@style/OfflineSecondary" android:text="@string/offline_export"/>

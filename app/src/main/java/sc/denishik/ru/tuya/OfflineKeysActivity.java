@@ -23,16 +23,18 @@ import java.util.concurrent.Executors;
 import sc.denishik.ru.R;
 
 /** An isolated SDK connection screen; it does not replay captured encrypted GATT packets. */
-public class OfflineKeysActivity extends AppCompatActivity {
+public class OfflineKeysActivity extends AppCompatActivity implements sc.denishik.ru.other.KugooLoginSheet.Host {
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private final Handler main = new Handler(Looper.getMainLooper());
-    private TextView result, profileView, statusView, connectionState;
+    private TextView result, profileView, connectionState;
+    private android.widget.Toast statusToast;
     private EditText input;
     private Button rootButton, importButton, connectButton;
     private JSONObject profile;
     private KugooConnection session;
     private List<JSONObject> importedProfiles;
     private boolean busy;
+    private int savedProfileCount;
     private static final int IMPORT_FILE = 71, EXPORT_FILE = 72;
 
     @Override protected void onCreate(@Nullable Bundle state) {
@@ -42,7 +44,6 @@ public class OfflineKeysActivity extends AppCompatActivity {
         input = findViewById(R.id.global_preference_table);
         result = findViewById(R.id.result);
         profileView = findViewById(R.id.kugoo_profile);
-        statusView = findViewById(R.id.offline_status);
         connectionState = findViewById(R.id.offline_connection_state);
         ((com.google.android.material.appbar.MaterialToolbar) findViewById(R.id.offline_toolbar))
                 .setNavigationOnClickListener(v -> finish());
@@ -55,7 +56,6 @@ public class OfflineKeysActivity extends AppCompatActivity {
         importButton = findViewById(R.id.import_kugoo_json);
         connectButton = findViewById(R.id.connect_kugoo_offline);
         updateProfile();
-        statusView.setVisibility(View.GONE);
         if (state != null) {
             if (state.getBoolean("manual_open")) toggleSection(R.id.offline_manual_content,
                     R.id.offline_manual_toggle, R.string.offline_manual, R.string.offline_manual_hide);
@@ -70,9 +70,11 @@ public class OfflineKeysActivity extends AppCompatActivity {
                         .addCategory(android.content.Intent.CATEGORY_OPENABLE).setType("application/json")
                         .putExtra(android.content.Intent.EXTRA_TITLE, "kugoo-connections.json"), EXPORT_FILE));
         findViewById(R.id.share_kugoo_file).setOnClickListener(v -> shareConnections());
+        findViewById(R.id.kugoo_authorize).setOnClickListener(v -> sc.denishik.ru.other.Modals.showKugooLogin(this));
         rootButton.setOnClickListener(v -> importData(true));
         importButton.setOnClickListener(v -> importData(false));
         connectButton.setOnClickListener(v -> connect());
+        findViewById(R.id.offline_open_home).setOnClickListener(v -> openHome());
         findViewById(R.id.disconnect_kugoo_offline).setOnClickListener(v -> { disconnect(); show("Отключено"); });
         busy(true);
         worker.execute(() -> {
@@ -100,6 +102,15 @@ public class OfflineKeysActivity extends AppCompatActivity {
                 postError(error instanceof java.io.IOException ? error.getMessage() : "Импорт не выполнен: " + error.getClass().getSimpleName());
             }
         });
+    }
+
+    @Override public void onKugooLoginProfiles(List<JSONObject> devices) {
+        if (devices.size() == 1) {
+            disconnect();
+            importedProfiles = devices;
+            profile = devices.get(0); // The login sheet has already saved it successfully.
+            updateProfile();
+        } else chooseProfiles(devices);
     }
 
     private void chooseProfiles(List<JSONObject> devices) {
@@ -173,7 +184,6 @@ public class OfflineKeysActivity extends AppCompatActivity {
                 main.post(() -> {
                     if (isDestroyed() || isFinishing()) return;
                     busy(false);
-                    statusView.setVisibility(View.GONE);
                     android.content.Intent send = new android.content.Intent(android.content.Intent.ACTION_SEND)
                             .setType("application/json")
                             .putExtra(android.content.Intent.EXTRA_STREAM, uri)
@@ -210,6 +220,18 @@ public class OfflineKeysActivity extends AppCompatActivity {
     }
 
     private void updateProfile() {
+        worker.execute(() -> {
+            int count;
+            try { count = KugooProfileStore.loadAll(getApplicationContext()).size(); }
+            catch (Exception ignored) { count = 0; }
+            final int savedCount = count;
+            main.post(() -> {
+                if (isDestroyed() || isFinishing()) return;
+                savedProfileCount = savedCount;
+                updateActions();
+            });
+        });
+        findViewById(R.id.offline_transfer_panel).setVisibility(profile == null ? View.GONE : View.VISIBLE);
         findViewById(R.id.offline_scooter_panel).setVisibility(profile == null ? View.GONE : View.VISIBLE);
         findViewById(R.id.offline_scooter_background).setVisibility(profile == null ? View.GONE : View.VISIBLE);
         profileView.setText(profile == null ? getString(R.string.offline_empty) : label(profile));
@@ -287,6 +309,23 @@ public class OfflineKeysActivity extends AppCompatActivity {
         });
         session.connect(profile);
     }
+    private void openHome() {
+        if (busy || profile == null || session == null || !session.isOnline()) return;
+        try {
+            // Home obtains telemetry from ServiceScooter, not this activity's test session.
+            startService(new android.content.Intent(this, sc.denishik.ru.ServiceScooter.class)
+                    .putExtra("command", sc.denishik.ru.other.Config.SCOOTER_CONNECT_COMMAND)
+                    .putExtra("kugoo_dev_id", profile.optString("devId")));
+            // Release the activity-owned BLE session before the service reconnects.
+            disconnect();
+            startActivity(new android.content.Intent(this, sc.denishik.ru.HomeActivity.class)
+                    .addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP));
+            finish();
+        } catch (IllegalStateException | SecurityException error) {
+            show(getString(R.string.offline_open_home_error));
+        }
+    }
+
     private void disconnect() {
         if (session != null) { session.disconnect(); session = null; }
         if (connectionState != null) {
@@ -300,6 +339,7 @@ public class OfflineKeysActivity extends AppCompatActivity {
         busy = value;
         findViewById(R.id.offline_progress).setVisibility(value ? View.VISIBLE : View.GONE);
         rootButton.setEnabled(!value);
+        findViewById(R.id.kugoo_authorize).setEnabled(!value);
         findViewById(R.id.import_kugoo_file).setEnabled(!value);
         findViewById(R.id.export_kugoo_file).setEnabled(!value && profile != null);
         findViewById(R.id.share_kugoo_file).setEnabled(!value && profile != null);
@@ -309,14 +349,22 @@ public class OfflineKeysActivity extends AppCompatActivity {
     }
     private void updateActions() {
         boolean active = session != null && session.isActive();
+        boolean online = active && session.isOnline();
+        connectButton.setVisibility(online ? View.GONE : View.VISIBLE);
+        findViewById(R.id.offline_open_home).setVisibility(online ? View.VISIBLE : View.GONE);
+        findViewById(R.id.offline_open_home).setEnabled(!busy && profile != null && online);
         connectButton.setEnabled(!busy && profile != null && !active);
         connectButton.setText(active ? (session.isOnline() ? R.string.offline_online : R.string.offline_linking) : R.string.offline_connect);
         findViewById(R.id.disconnect_kugoo_offline).setVisibility(active ? View.VISIBLE : View.GONE);
-        findViewById(R.id.offline_choose_profile).setVisibility(profile == null ? View.GONE : View.VISIBLE);
+        findViewById(R.id.offline_choose_profile).setVisibility(
+                profile != null && savedProfileCount > 1 ? View.VISIBLE : View.GONE);
         findViewById(R.id.offline_choose_profile).setEnabled(!busy);
     }
     private void show(String text) {
-        if (!isDestroyed()) { statusView.setVisibility(View.VISIBLE); statusView.setText(text); }
+        if (isDestroyed() || isFinishing()) return;
+        if (statusToast != null) statusToast.cancel();
+        statusToast = android.widget.Toast.makeText(this, text, android.widget.Toast.LENGTH_LONG);
+        statusToast.show();
     }
     private void postError(String text) { main.post(() -> { if (!isDestroyed()) { busy(false); show(text); } }); }
 
@@ -327,6 +375,7 @@ public class OfflineKeysActivity extends AppCompatActivity {
     }
 
     @Override protected void onDestroy() {
+        if (statusToast != null) statusToast.cancel();
         disconnect();
         main.removeCallbacksAndMessages(null);
         worker.shutdownNow();

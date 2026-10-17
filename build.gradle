@@ -29,3 +29,11 @@ allprojects {
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
+
+tasks.register('buildKurwa', Exec) {
+    group = 'build'
+    description = 'Build a separate local Kurwa APK without changing the normal app.'
+    workingDir rootProject.projectDir
+    commandLine 'powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass',
+            '-File', rootProject.file('scripts/build-kurwa.ps1').absolutePath
+}

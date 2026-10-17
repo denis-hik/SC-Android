@@ -10,4 +10,5 @@
     <color name="app_text">#F7EDF9</color>
     <color name="app_text_secondary">#C7B4CE</color>
     <color name="app_outline">#513859</color>
+    <color name="ws_log_error">#FFADB9</color>
 </resources>

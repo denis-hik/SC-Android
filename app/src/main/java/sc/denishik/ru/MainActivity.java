@@ -35,9 +35,6 @@ import sc.denishik.ru.other.Modals;
 
 public class MainActivity extends AppCompatActivity {
 	private static final int REQUEST_BLUETOOTH_PERMISSION = 1;
-	private static final int REQUEST_LOCATION_PERMISSION = 2;
-	private static final int BLUETOOTH_PRIVILEGED = 3;
-	private static final int ACCESS_FINE_LOCATION = 4;
 	private ArrayList<HashMap<String, Object>> listScooters = new ArrayList<>();
 	private com.google.android.material.bottomsheet.BottomSheetDialog dialog;
 
@@ -51,133 +48,64 @@ public class MainActivity extends AppCompatActivity {
 		super.onCreate(_savedInstanceState);
 		setContentView(R.layout.main);
 		initialize(_savedInstanceState);
-		if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH)
-				!= PackageManager.PERMISSION_GRANTED
-				|| ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_ADMIN)
-				!= PackageManager.PERMISSION_GRANTED
-				|| ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_PRIVILEGED)
-				!= PackageManager.PERMISSION_GRANTED
-				|| ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-				!= PackageManager.PERMISSION_GRANTED
-				|| ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
-				!= PackageManager.PERMISSION_GRANTED
-				|| ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-				!= PackageManager.PERMISSION_GRANTED
-				|| ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
-				!= PackageManager.PERMISSION_GRANTED) {
-			// Request Bluetooth permissions
-			String[][] s = {new String[]{
-					Manifest.permission.BLUETOOTH,
-					Manifest.permission.BLUETOOTH_CONNECT,
-					Manifest.permission.BLUETOOTH_ADMIN,
-					Manifest.permission.BLUETOOTH_PRIVILEGED,
-					Manifest.permission.ACCESS_COARSE_LOCATION,
-					Manifest.permission.ACCESS_FINE_LOCATION
-			}};
-			if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-				s[0] = new String[]{
-						Manifest.permission.BLUETOOTH_CONNECT,
-						Manifest.permission.BLUETOOTH_ADMIN,
-						Manifest.permission.BLUETOOTH_SCAN,
-						Manifest.permission.BLUETOOTH_ADVERTISE,
-						Manifest.permission.BLUETOOTH_PRIVILEGED,
-						Manifest.permission.ACCESS_COARSE_LOCATION,
-						Manifest.permission.ACCESS_FINE_LOCATION
-				};
-			}
-			showPermissionModal(this, dialog -> {
-				MainActivity.this.dialog = dialog;
-				ActivityCompat.requestPermissions(
-						MainActivity.this,
-						s[0],
-						REQUEST_BLUETOOTH_PERMISSION
-				);
-			});
+        if (sc.denishik.ru.other.ConnectionPermissions.missing(this).length == 0) {
+            initializeLogic();
+        } else {
+            dialog = showPermissionModal(this, sheet -> {
+                dialog = sheet;
+                String[] missing = sc.denishik.ru.other.ConnectionPermissions.missing(this);
+                if (missing.length == 0) {
+                    finishPermissionSetup();
+                    return;
+                }
+                boolean blocked = false;
+                for (String permission : missing) {
+                    if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED
+                            && getSharedPreferences("permission_requests", MODE_PRIVATE).getBoolean(permission, false)
+                            && !ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) blocked = true;
+                }
+                if (blocked) {
+                    startActivity(new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            android.net.Uri.parse("package:" + getPackageName())));
+                } else {
+                    android.content.SharedPreferences.Editor editor = getSharedPreferences("permission_requests", MODE_PRIVATE).edit();
+                    for (String permission : missing) editor.putBoolean(permission, true);
+                    editor.apply();
+                    ActivityCompat.requestPermissions(this, missing, REQUEST_BLUETOOTH_PERMISSION);
+                }
+            });
+        }
+    }
 
-			showMessage("enable permission blu");
-			Log.d("", "onCreate: blu no");
-			blu_err.setVisibility(View.VISIBLE);
-			return;
-		}
-		Log.d("", "onCreate: blu yes");
-		initializeLogic();
+    private boolean permissionSetupFinished;
+    private void finishPermissionSetup() {
+        if (permissionSetupFinished) return;
+        permissionSetupFinished = true;
+        if (dialog != null) dialog.dismiss();
+        blu_err.setVisibility(View.GONE);
+        initializeLogic();
+    }
 
-	}
+    @Override protected void onResume() {
+        super.onResume();
+        if (dialog != null && dialog.isShowing()) {
+            if (sc.denishik.ru.other.ConnectionPermissions.missing(this).length == 0) finishPermissionSetup();
+            else sc.denishik.ru.other.ConnectionPermissions.refresh(this, dialog);
+        }
+    }
 
 	@Override
 	public void onDestroy() {
-//		unregisterReceiver(mReceiver);
+        if (dialog != null) dialog.dismiss();
 		super.onDestroy();
 	}
 
-	@Override
-	public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-		if (requestCode == ACCESS_FINE_LOCATION) {
-			if (Objects.equals(getSharedPreferences("file", MODE_PRIVATE).getString("isLoc", "0"), "1")) {
-				if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-						!= PackageManager.PERMISSION_GRANTED) {
-					ActivityCompat.requestPermissions(
-							this,
-							new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-							ACCESS_FINE_LOCATION
-					);
-					return;
-				}
-			}
-
-		}
-		if (requestCode == REQUEST_BLUETOOTH_PERMISSION) {
-			if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-				// Bluetooth permission granted, check location permission
-				if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-						!= PackageManager.PERMISSION_GRANTED) {
-					// Request location permission
-					ActivityCompat.requestPermissions(
-							this,
-							new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
-							REQUEST_LOCATION_PERMISSION
-					);
-				} else {
-					if (dialog != null) {
-						dialog.dismiss();
-					}
-					initializeLogic();
-					blu_err.setVisibility(View.GONE);
-					Log.d("", "onRequestPermissionsResult: blu yes");
-				}
-			} else {
-				showMessage("enable permision blu");
-				Log.d("", "onRequestPermissionsResult: blu no");
-				blu_err.setVisibility(View.VISIBLE);
-			}
-		} else if (requestCode == REQUEST_LOCATION_PERMISSION) {
-			if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-				if (dialog != null) {
-					dialog.dismiss();
-				}
-				initializeLogic();
-				blu_err.setVisibility(View.GONE);
-				Log.d("", "onRequestPermissionsResult: blu yes");
-			} else {
-				showMessage("enable permision blu");
-				Log.d("", "onRequestPermissionsResult: blu no");
-				blu_err.setVisibility(View.VISIBLE);
-			}
-		} else if (requestCode == BLUETOOTH_PRIVILEGED) {
-			if (grantResults.length > 0 && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
-				if (dialog != null) {
-					dialog.dismiss();
-				}
-				initializeLogic();
-				blu_err.setVisibility(View.GONE);
-				Log.d("", "BLUETOOTH_PRIVILEGED: blu yes");
-			} else {
-				blu_err.setVisibility(View.VISIBLE);
-				Log.d("", "BLUETOOTH_PRIVILEGED: blu no");
-			}
-		}
-	}
+    @Override public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode != REQUEST_BLUETOOTH_PERMISSION) return;
+        if (sc.denishik.ru.other.ConnectionPermissions.missing(this).length == 0) finishPermissionSetup();
+        else if (dialog != null) sc.denishik.ru.other.ConnectionPermissions.refresh(this, dialog);
+    }
 
 	private void initialize(Bundle _savedInstanceState) {
 		linear1 = findViewById(R.id.linear1);

@@ -75,6 +75,7 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
         </LinearLayout>
+        <!-- Speed limit controls disabled.
         <LinearLayout
             android:id="@+id/speed_controls"
             android:paddingLeft="10dp"
@@ -105,8 +106,10 @@
                 android:text="max 40"
             />
         </LinearLayout>
+        -->
         <LinearLayout
             android:id="@+id/gear_controls"
+            android:visibility="gone"
             android:paddingLeft="10dp"
             android:paddingRight="10dp"
             android:layout_width="match_parent"

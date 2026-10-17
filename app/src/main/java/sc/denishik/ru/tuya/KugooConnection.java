@@ -43,6 +43,7 @@ public final class KugooConnection {
     private JSONObject profile;
     private JSONObject dps = new JSONObject();
     private boolean connecting, online, retryPending;
+    private boolean connectedOnce;
     private int attempts, generation;
     private long deadline;
     private FirmwareListener firmwareListener;
@@ -182,6 +183,7 @@ public final class KugooConnection {
         if (manager == null || manager.getAdapter() == null) {
             fail("Bluetooth недоступен на телефоне"); return;
         }
+        String stage = "SDK_INIT";
         try {
             if (!sdkReady) {
                 if (BuildConfig.TUYA_APP_KEY.trim().isEmpty() || BuildConfig.TUYA_APP_SECRET.trim().isEmpty()) {
@@ -191,9 +193,11 @@ public final class KugooConnection {
                 ThingHomeSdk.setDebugMode(false);
                 sdkReady = true;
             }
+            stage = "DEVICE_PLUGIN";
             IThingDevicePlugin plugin = PluginManager.service(IThingDevicePlugin.class);
             if (plugin == null) throw new IllegalStateException("Device plugin unavailable");
             IThingDevListCacheManager cache = plugin.getDevListCacheManager();
+            stage = "PRODUCT_CACHE";
             JSONObject product = profile.optJSONObject("_product");
             if (product == null) product = profile.optJSONObject("productBean");
             if (product != null) {
@@ -201,10 +205,14 @@ public final class KugooConnection {
                 if (!profile.getString("productId").equals(productBean.getId())) throw new IllegalArgumentException("Product mismatch");
                 plugin.getThingSmartDeviceInstance().addProductList(Collections.singletonList(productBean));
             }
+            stage = "DEVICE_CACHE";
             DeviceRespBean bean = new Gson().fromJson(profile.toString(), DeviceRespBean.class);
+            stage = "DEVICE_CACHE_ADD";
             cache.addDev(bean);
             String id = profile.getString("devId");
+            stage = "DEVICE_CACHE_GET";
             if (cache.getDev(id) == null) throw new IllegalStateException("Unsupported device record");
+            stage = "BLE_SETUP";
             builder = new BleConnectBuilder().setDevId(id).setScanTimeout(15000).setDirectConnect(false);
             String address = profile.optString("_bleAddress");
             if (BluetoothAdapter.checkBluetoothAddress(address) && profile.optInt("_bleType", -1) >= 0) {
@@ -236,10 +244,13 @@ public final class KugooConnection {
             });
             dps = new JSONObject();
             connecting = true;
+            connectedOnce = false;
             attempts = 0;
+            stage = "BLE_START";
             startAttempt();
             main.postDelayed(monitor, 500);
         } catch (Exception | LinkageError error) {
+            android.util.Log.e("KugooConnection", "Connection setup failed: " + stage + " / " + error.getClass().getSimpleName());
             fail("Не удалось подключиться через SDK: " + error.getClass().getSimpleName());
         }
     }
@@ -285,6 +296,7 @@ public final class KugooConnection {
                 boolean current = ThingHomeSdk.getBleManager().isBleLocalOnline(builder.getDevId());
                 if (current && !online) {
                     online = true;
+                    connectedOnce = true;
                     attempts = 0;
                     android.util.Log.i("KugooConnection", "BLE online; requesting data");
                     listener.onStatus(true, "Kugoo подключён");
@@ -294,6 +306,10 @@ public final class KugooConnection {
                     attempts = 0;
                     scheduleRetry();
                 } else if (!current && SystemClock.elapsedRealtime() >= deadline) {
+                    if (!connectedOnce && attempts >= 3) {
+                        fail("Самокат не ответил после 3 попыток. Включите его рядом с телефоном и отключите соединение в другом SC, Kurwa или Kugoo Riding, затем повторите подключение.");
+                        return;
+                    }
                     if (retryPending) startAttempt(); else scheduleRetry();
                 }
             } catch (SecurityException error) {

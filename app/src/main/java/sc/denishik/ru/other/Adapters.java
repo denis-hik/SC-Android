@@ -180,7 +180,7 @@ public class Adapters {
             LayoutInflater _inflater = _activity.getLayoutInflater();
             View _view = _v;
             if (_view == null) {
-                _view = _inflater.inflate(R.layout.led_item, null);
+                _view = _inflater.inflate(R.layout.led_item, _container, false);
             }
 
             final ImageView image = _view.findViewById(R.id.image);
@@ -190,12 +190,9 @@ public class Adapters {
 
             label.setText(_data.get(_position).getDate());
             message.setText(_data.get(_position).getMessage());
-            if (_data.get(_position).getIsConnected()) {
-                image.setVisibility(View.VISIBLE);
-            }
-            if (!_data.get(_position).getIsConnected()) {
-                image_off.setVisibility(View.VISIBLE);
-            }
+            boolean normal = _data.get(_position).getIsConnected();
+            image.setVisibility(normal ? View.VISIBLE : View.GONE);
+            image_off.setVisibility(normal ? View.GONE : View.VISIBLE);
 
             return _view;
         }

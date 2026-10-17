@@ -1,0 +1,26 @@
+<resources>
+    <string name="led_ble_count">Подключено LED: %1$d · Сохранено: %2$d</string>
+    <string name="led_ble_waiting">Ожидание доступности · автоподключение</string>
+    <string name="led_ble_values">Передача скорости: %1$.1f км/ч · эффект %2$d%%</string>
+    <string name="led_ble_capacity">Точный лимит BLE Android не сообщает. Можно попробовать добавить ещё LED: возможность проверится при подключении. Рабочие соединения сохранятся.</string>
+    <string name="led_ble_add">+ Добавить LED</string>
+    <string name="led_ble_forget">Отключить и забыть</string>
+    <string name="led_ble_busy">Дождитесь завершения текущего подключения</string>
+    <string name="led_ble_extra_failed">Проверьте питание и доступность LED. Возможна нехватка ресурсов Bluetooth, но эта ошибка не определяет точный лимит.</string>
+    <string name="led_ble_saved_hint">Сохранённые устройства подключатся автоматически при запуске сервиса самоката. Недоступные проверяются периодически.</string>
+    <string name="led_ble_timeout">LED не отвечает</string>
+    <string name="led_ble_permissions">Разрешите доступ к Bluetooth и повторите поиск</string>
+    <string name="led_ble_enable">Включите Bluetooth</string>
+    <string name="led_ble_scan_error">Не удалось запустить поиск</string>
+    <string name="led_ble_disconnected">LED отключён</string>
+    <string name="led_ble_connecting">Подключение к LED…</string>
+    <string name="led_ble_connection_error">Не удалось подключиться к LED</string>
+    <string name="led_ble_unsupported">Контроллер не поддерживает протокол Smart LED</string>
+    <string name="led_ble_ready">Передача скорости включена</string>
+    <string name="led_ble_write_error">Не удалось передать команду</string>
+    <string name="led_ble_search">Поиск Smart LED…</string>
+    <string name="led_ble_empty">Smart LED не найден. Включите контроллер и повторите поиск.</string>
+    <string name="led_ble_title">Connect LED</string>
+    <string name="led_ble_pairing">Bluetooth pairing</string>
+    <string name="led_ble_status">%1$s\n\n%2$s\n\nСкорость: %3$.1f км/ч\nСкорость эффекта: %4$d%%</string>
+</resources>

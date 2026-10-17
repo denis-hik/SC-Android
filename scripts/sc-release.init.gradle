@@ -1,0 +1,14 @@
+// Matches the signing certificate of existing development distributions.
+// Account credentials must never be embedded in a distributed APK.
+allprojects { p ->
+    p.afterEvaluate {
+        if (p.path == ':app') {
+            p.android.buildTypes.release {
+                debuggable false
+                signingConfig p.android.signingConfigs.debug
+                buildConfigField 'String', 'TUYA_APP_Login', '\"\"'
+                buildConfigField 'String', 'TUYA_APP_Password', '\"\"'
+            }
+        }
+    }
+}
